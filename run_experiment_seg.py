@@ -1,4 +1,4 @@
-"""Scripts for running synthetic SATANN experiments.
+"""Scripts for running synthetic SATANN experiments using segmentation.
 
 Author
 ------
@@ -26,7 +26,7 @@ def run_experiment(model_seed, dataset_split_seed, dataset, test_dataset, relati
     # Default training label: timestamp of start of training
     if experiment_label is None:
         experiment_label = time.strftime("%Y%m%d-%H%M%S")
-    print("Starting experiment {} with model_seed={}, dataset_split_seed={}, alpha={}".format(experiment_label, model_seed, dataset_split_seed, alpha))
+    print("Starting segmentation experiment {} with model_seed={}, dataset_split_seed={}, alpha={}".format(experiment_label, model_seed, dataset_split_seed, alpha))
 
     # Fixing torch random generator for the dataset splitter
     dataset_split_rng=torch.Generator().manual_seed(dataset_split_seed)
