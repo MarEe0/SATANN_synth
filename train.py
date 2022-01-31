@@ -230,10 +230,11 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, ta
 
 
             # Save validation images
-            for i, (val_image, val_targets, val_outputs) in enumerate(zip(all_val_images[:vals_to_plot], 
-                                                                          all_val_targets[:vals_to_plot], 
-                                                                          outputs_softmax[:vals_to_plot])):
-                plot_output(val_image, val_targets, val_outputs, os.path.join(epoch_validation_path, "val{}.png".format(i)))
+            if "dice" in metrics or "cc" in metrics:
+                for i, (val_image, val_targets, val_outputs) in enumerate(zip(all_val_images[:vals_to_plot], 
+                                                                            all_val_targets[:vals_to_plot], 
+                                                                            outputs_softmax[:vals_to_plot])):
+                    plot_output(val_image, val_targets, val_outputs, os.path.join(epoch_validation_path, "val{}.png".format(i)))
 
     # Load best weights
     model.load_state_dict(best_model_weights)
