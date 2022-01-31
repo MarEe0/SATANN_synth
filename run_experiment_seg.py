@@ -145,7 +145,7 @@ def run_experiment(model_seed, dataset_split_seed, dataset, test_dataset, relati
 
 
 from datasets.clostob.clostob_dataset import CloStObDataset
-from spatial_loss import GraphSpatialLoss
+from spatial_loss import SpatialPriorErrorSegmentation
 from collections import deque
 
 if __name__ == "__main__":
@@ -167,7 +167,7 @@ if __name__ == "__main__":
     graph_relations = [[1, 2, 0, -0.4],
                        [1, 3, 0.3, -0.4],
                        [2, 3, 0.3, 0]]   
-    relational_criterion = GraphSpatialLoss(graph_relations, image_dimensions=image_dimensions, num_classes=len(fg_classes))
+    relational_criterion = SpatialPriorErrorSegmentation(graph_relations, image_dimensions=image_dimensions, num_classes=len(fg_classes))
 
     # Preparing dataset transforms:
     transform = tv.transforms.Compose(                                  # For the images:
