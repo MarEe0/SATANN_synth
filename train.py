@@ -17,7 +17,7 @@ from torch.nn.functional import softmax
 from metrics import dice_score, count_connected_components
 from utils import mkdir, plot_output
 
-def train_model(model, optimizer, scheduler, criterion, relational_criterion, alpha, data_loaders, max_epochs=100, training_label=None, results_path=None, vals_to_plot=5):
+def train_model(model, optimizer, scheduler, criterion, relational_criterion, target_key, alpha, data_loaders, metrics=None, max_epochs=100, clip_max_norm=0, training_label=None, results_path=None, vals_to_plot=5):
     """Trains a neural network model until specified criteria are met.
 
     This function is a generic PyTorch NN training loop.
@@ -34,12 +34,19 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, al
         Loss function class to be used for training.
     relational_criterion : `spatial_loss.GraphSpatialLoss`
         The relational loss object (needed even for the baseline for computing metrics).
+    target_key : `str`, one of `"labelmap"`, `"centers"`
+        The key to the wanted target in the data dictionary. `"labelmap"` is for segmentation,
+        while `"centers"` is for detection.
     alpha : `float`
         The weight of the relational loss. The weight of the criterion is `(1-alpha)`.
     data_loaders : `dict`
         Dictionary containing the 'train' and 'val' `DataLoader`s, keyed to those names.
+    metrics : `list`
+        List containing the metric functions to be computed. Available values: "dice", "cc", "iou"
     max_epochs : `int`
         Maximum number of training epochs.
+    clip_max_norm : `int`
+        If greater than zero, the norm under which gradients will be clipped.
     training_label : `str` or _None_
         Label of this training, for saving results. If None, get current timestamp.
     vals_to_plot : `int`
@@ -94,7 +101,7 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, al
                                    postfix={"loss": float("inf")})
             for item_pair in items_pbar:
                 images = item_pair["image"].to(device)
-                targets = item_pair["labelmap"].to(device)
+                targets = item_pair[target_key].to(device)
 
                 # Zeroing gradients for a new minibatch
                 optimizer.zero_grad()
@@ -116,7 +123,10 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, al
                     # Backward (only in training phase)
                     if phase == "train":
                         loss.backward()
-                        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1)
+
+                        if clip_max_norm > 0:
+                            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=clip_max_norm)
+
                         optimizer.step()
                     # Stepping scheduler (only in validation phase)
                     #if phase == "val":
@@ -157,24 +167,25 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, al
             all_val_targets = torch.cat(val_targets, dim=0).to(device)
             num_classes = all_val_outputs.shape[1]  # Get number of classes
 
-            outputs_softmax = softmax(all_val_outputs, dim=1)  # Softmax outputs along class dimension
-            outputs_argmax = outputs_softmax.argmax(dim=1)  # Argmax outputs along class dimension
+            if "dice" in metrics or "cc" in metrics:
+                outputs_softmax = softmax(all_val_outputs, dim=1)  # Softmax outputs along class dimension
+                outputs_argmax = outputs_softmax.argmax(dim=1)  # Argmax outputs along class dimension
 
-            # Compute dices
-            outputs_dices = [dice_score(outputs_argmax, all_val_targets, _class) for _class in range(num_classes)]
+            if "dice" in metrics:
+                # Compute dices
+                # Print foreground dices
+                outputs_dices = [dice_score(outputs_argmax, all_val_targets, _class) for _class in range(num_classes)]
+                mean_output_dices = torch.mean(torch.stack(outputs_dices), dim=1)
+                print("Mean foreground Dices: ", end="")
+                for mean_output_dice in mean_output_dices[1:]:
+                    print("{:.4f}, ".format(mean_output_dice.item()), end="")
+                print("")
+            if "cc" in metrics:
+                # Compute connected components per class
+                outputs_connected_components = [count_connected_components(outputs_argmax, _class) for _class in range(num_classes)]
 
             # Compute relational scores
             outputs_relational_scores = relational_criterion.compute_metric(outputs_softmax)
-
-            # Compute connected components per class
-            outputs_connected_components = [count_connected_components(outputs_argmax, _class) for _class in range(num_classes)]
-
-            # Print foreground dices
-            mean_output_dices = torch.mean(torch.stack(outputs_dices), dim=1)
-            print("Mean foreground Dices: ", end="")
-            for mean_output_dice in mean_output_dices[1:]:
-                print("{:.4f}, ".format(mean_output_dice.item()), end="")
-            print("")
 
             # Save validation metrics
             epoch_validation_path = os.path.join(validation_path, "epoch_{}".format(epoch))
@@ -190,20 +201,30 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, al
                 [
                     {
                         _class : {
-                            "Dice" : outputs_dices[_class][val_index].item(),
                             "Relational Loss" : outputs_relational_scores[val_index].item(),
-                            "Connected Components" : outputs_connected_components[_class][val_index]
                         } for _class in range(num_classes)
                     } for val_index in range(all_val_outputs.shape[0])
                 ],
                 "mean": {
                     _class : {
-                        "Dice" : torch.mean(outputs_dices[_class]).item(),
                         "Relational Loss" : torch.mean(outputs_relational_scores).item(),
-                        "Connected Components" : np.mean(outputs_connected_components[_class])
                     } for _class in range(num_classes)
                 }
             }
+            # If dice is one of the validation metrics:
+            if "dice" in metrics:
+                for _class in range(num_classes):
+                    validation_metrics["mean"][_class]["Dice"] = torch.mean(outputs_connected_components[_class]).item()
+                    for val_index in range(all_val_outputs.shape[0]):
+                        validation_metrics["all"][val_index][_class]["Dice"] = outputs_connected_components[_class][val_index].item()
+            # If cc is one of the validation metrics:
+            if "cc" in metrics:
+                for _class in range(num_classes):
+                    validation_metrics["mean"][_class]["Connected Components"] = torch.mean(outputs_connected_components[_class]).item()
+                    for val_index in range(all_val_outputs.shape[0]):
+                        validation_metrics["all"][val_index][_class]["Connected Components"] = outputs_connected_components[_class][val_index].item()
+            
+
             with open(os.path.join(epoch_validation_path, "summary.json"), 'w') as f:
                 json.dump(validation_metrics, f, sort_keys=True, indent=4)
 

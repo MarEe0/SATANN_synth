@@ -21,7 +21,7 @@ from utils import targetToTensor, mkdir, plot_output
 from metrics import dice_score, count_connected_components
 
 def run_experiment(model_seed, dataset_split_seed, dataset, test_dataset, relational_criterion, alpha, deterministic=False, experiment_label=None):
-    results_path = "results_seg"
+    results_path = "results/results_seg"
 
     # Default training label: timestamp of start of training
     if experiment_label is None:
@@ -72,7 +72,9 @@ def run_experiment(model_seed, dataset_split_seed, dataset, test_dataset, relati
     criterion = torch.nn.CrossEntropyLoss()
 
     # Training
-    model = train_model(model, optimizer, scheduler, criterion, relational_criterion, alpha, data_loaders, max_epochs=100, training_label=experiment_label, results_path=results_path)
+    model = train_model(model, optimizer, scheduler, criterion, relational_criterion, "labelmap", alpha, data_loaders,
+                        max_epochs=100, metrics=["dice","cc"], clip_max_norm=1, training_label=experiment_label,
+                        results_path=results_path)
 
     # Testing
     test_outputs, truths = [], []
