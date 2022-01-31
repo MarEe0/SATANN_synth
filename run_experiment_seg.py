@@ -150,7 +150,7 @@ from collections import deque
 
 if __name__ == "__main__":
     # Testing experiments
-    dataset_size = 20
+    dataset_size = 400
     test_set_size = 30
 
     # Preparing the foreground
