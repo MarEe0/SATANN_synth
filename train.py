@@ -214,15 +214,15 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, ta
             # If dice is one of the validation metrics:
             if "dice" in metrics:
                 for _class in range(num_classes):
-                    validation_metrics["mean"][_class]["Dice"] = torch.mean(outputs_connected_components[_class]).item()
+                    validation_metrics["mean"][_class]["Dice"] = torch.mean(outputs_dices[_class]).item()
                     for val_index in range(all_val_outputs.shape[0]):
-                        validation_metrics["all"][val_index][_class]["Dice"] = outputs_connected_components[_class][val_index].item()
+                        validation_metrics["all"][val_index][_class]["Dice"] = outputs_dices[_class][val_index].item()
             # If cc is one of the validation metrics:
             if "cc" in metrics:
                 for _class in range(num_classes):
-                    validation_metrics["mean"][_class]["Connected Components"] = torch.mean(outputs_connected_components[_class]).item()
+                    validation_metrics["mean"][_class]["Connected Components"] = np.mean(outputs_connected_components[_class])
                     for val_index in range(all_val_outputs.shape[0]):
-                        validation_metrics["all"][val_index][_class]["Connected Components"] = outputs_connected_components[_class][val_index].item()
+                        validation_metrics["all"][val_index][_class]["Connected Components"] = outputs_connected_components[_class][val_index]
             
 
             with open(os.path.join(epoch_validation_path, "summary.json"), 'w') as f:
