@@ -75,7 +75,7 @@ class UNet(nn.Module):
 
 
 class UNetDetection(nn.Module):
-    def __init__(self, input_channels, output_metrics, input_size):
+    def __init__(self, input_channels, output_size, input_size):
         super().__init__()
 
         self.input_size = input_size
@@ -92,7 +92,7 @@ class UNetDetection(nn.Module):
         self.dconv_up2 = double_conv(128 + 256, 128)
         self.dconv_up1 = double_conv(128 + 64, 64)
 
-        self.fc_last = nn.Linear(64 * input_size[0] * input_size[1], output_metrics)  # Hardcoded for 2D
+        self.fc_last = nn.Linear(64 * input_size[0] * input_size[1], output_size)  # Hardcoded for 2D
 
 
     def forward(self, x):
