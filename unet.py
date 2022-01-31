@@ -74,6 +74,57 @@ class UNet(nn.Module):
         return out
 
 
+class UNetDetection(nn.Module):
+    def __init__(self, input_channels, output_metrics, input_size):
+        super().__init__()
+
+        self.input_size = input_size
+
+        self.dconv_down1 = double_conv(input_channels, 64)
+        self.dconv_down2 = double_conv(64, 128)
+        self.dconv_down3 = double_conv(128, 256)
+        self.dconv_down4 = double_conv(256, 512)
+
+        self.maxpool = nn.MaxPool2d(2)
+        self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+
+        self.dconv_up3 = double_conv(256 + 512, 256)
+        self.dconv_up2 = double_conv(128 + 256, 128)
+        self.dconv_up1 = double_conv(128 + 64, 64)
+
+        self.fc_last = nn.Linear(64 * input_size[0] * input_size[1], output_metrics)  # Hardcoded for 2D
+
+
+    def forward(self, x):
+        conv1 = self.dconv_down1(x)
+        x = self.maxpool(conv1)
+
+        conv2 = self.dconv_down2(x)
+        x = self.maxpool(conv2)
+
+        conv3 = self.dconv_down3(x)
+        x = self.maxpool(conv3)
+
+        x = self.dconv_down4(x)
+
+        x = self.upsample(x)
+        x = torch.cat([x, conv3], dim=1)
+
+        x = self.dconv_up3(x)
+        x = self.upsample(x)
+        x = torch.cat([x, conv2], dim=1)
+
+        x = self.dconv_up2(x)
+        x = self.upsample(x)
+        x = torch.cat([x, conv1], dim=1)
+
+        x = self.dconv_up1(x)
+
+        out = self.fc_last(x)
+
+        return out
+
+
 class UNet3D(nn.Module):
     def __init__(self, input_channels, output_channels):
         super().__init__()
