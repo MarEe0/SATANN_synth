@@ -43,60 +43,7 @@ class GraphSpatialLoss(nn.Module):
         else:
             self.threshold = None
 
-    def forward(self, output):
-        # Computing centroids
-        if self.image_dimensions is None:  # Initializing coordinates_map on-the-fly
-            self.coordinates_map = get_coordinates_map(output.size())
-        if self.threshold is None:  # Initializing threshold on-the-fly
-            self.threshold = nn.Threshold(1.0/output.shape[1]), 0
-
-        coords_y, coords_x = self.coordinates_map  # Getting coordinates map
-
-
-        coords_y = coords_y.expand(output.size())  # Fitting to the batch shape
-        coords_x = coords_x.expand(output.size())
-
-
-        # Thresholding with the defined threshold
-        output_thresholded = self.threshold(output)
-        # The total sum will be used for norm
-        output_sum = torch.sum(output_thresholded, dim=[2, 3])
-
-        centroids_y = torch.sum(output_thresholded * coords_y,
-                                dim=[2, 3]) / output_sum
-        centroids_x = torch.sum(output_thresholded * coords_x,
-                                dim=[2, 3]) / output_sum
-
-        # Computing loss per relation
-        if torch.cuda.is_available():
-            dy_all = torch.empty(len(self.relations), device="cuda")
-            dx_all = torch.empty(len(self.relations), device="cuda")
-        else:
-            dy_all = torch.empty(len(self.relations))
-            dx_all = torch.empty(len(self.relations))
-
-        for relation_index, relation in enumerate(self.relations):
-            i, j, dy_gt, dx_gt = relation
-            dy = centroids_y[:, i] - centroids_y[:, j]
-            dx = centroids_x[:, i] - centroids_x[:, j]
-
-            diff_y = dy - dy_gt
-            diff_x = dx - dx_gt
-
-            dy_error = torch.mean(torch.square(
-                torch.nan_to_num(diff_y, nan=0, posinf=0, neginf=0)))
-            dx_error = torch.mean(torch.square(
-                torch.nan_to_num(diff_x, nan=0, posinf=0, neginf=0)))
-
-            dy_all[relation_index] = dy_error
-            dx_all[relation_index] = dx_error
-
-        # Aggregating the errors - TODO: other aggregations?
-        error = dy_all.sum() + dx_all.sum()
-        return error
-    
-    def compute_metric(self, output):
-        """Like forward, but it return the value per object"""
+    def compute_errors(self, output):
         # Computing centroids
         if self.image_dimensions is None:  # Initializing coordinates_map on-the-fly
             self.coordinates_map = get_coordinates_map(output.size())
@@ -141,6 +88,19 @@ class GraphSpatialLoss(nn.Module):
 
             dy_all[relation_index] = dy_error
             dx_all[relation_index] = dx_error
+        
+        return dy_all, dx_all
+
+    def forward(self, output):
+        dy_all, dx_all = self.compute_errors(output)
+
+        # Aggregating the errors - TODO: other aggregations?
+        error = dy_all.sum() + dx_all.sum()
+        return error
+    
+    def compute_metric(self, output):
+        """Like forward, but it return the value per object"""
+        dy_all, dx_all = self.compute_errors(output)        
 
         # Aggregating the errors **over the relations only**
         error = dy_all.sum(dim=0) + dx_all.sum(dim=0)
