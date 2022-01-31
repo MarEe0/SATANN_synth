@@ -134,4 +134,4 @@ dmypy.json
 # Large results
 results_clean
 gradcam/gradcam_images
-results_seg/*/*.pth
+results/results_seg
