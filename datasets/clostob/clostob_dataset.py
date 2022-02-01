@@ -42,7 +42,7 @@ def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list
                    position_translation: float, position_noise: float, rescale_classes: list, 
                    rescale_range: tuple, occlusion_classes: list, occlusion_range: tuple, 
                    bg_classes: list, bg_amount: float, fine_segment: bool, flattened: bool):
-    """Generates a single CloStOb image and corresponding label map.
+    """Generates a single CloStOb image and corresponding label map and bounding boxes.
 
     :param seed: Random number generator seed for this image.
     :param base_dataset: loaded base dataset.
@@ -67,6 +67,8 @@ def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list
 
     # Creating empty base image and labelmap
     image, labelmap = np.zeros(image_dimensions, dtype="float32"), np.zeros(image_dimensions, dtype=int)
+    # Creating empty bounding boxes list - one (x,y,w,h) tuple for each fg_class
+    bboxes = np.zeros((len(fg_classes), 4))
     # Getting shape of base dataset images
     base_shape = base_dataset[bg_classes[0]][0].shape
     # Initialising limits on coordinates to avoid images "leaking out the border"
@@ -119,12 +121,14 @@ def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list
         if fine_segment:  # If the labelmap should cut out the zero part
             map_element[fg_element == 0] = 0
         labelmap[fg_element_coords] = map_element
+        # Adding bounding box element
+        bboxes[idx] = [*(fg_origin_coords + np.floor_divide(fg_element.shape,2)), *fg_element.shape]
 
     # Flattening image if necessary
     if flattened:
         image = image.flatten()
 
-    return {"image": image, "labelmap": labelmap}
+    return {"image": image, "labelmap": labelmap, "bboxes": bboxes}
 
 
 class CloStObDataset(Dataset):
@@ -232,12 +236,18 @@ if __name__ == '__main__':
                              flattened=False)
 
     import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
 
     for i in range(3):
         plt.subplot(121)
         plt.imshow(clostob[i]["image"], cmap="gray")
         plt.subplot(122)
         plt.imshow(clostob[i]["labelmap"])
+        for bbox in clostob[i]["bboxes"]:
+            plt.scatter([bbox[1]],[bbox[0]])
+            rect = patches.Rectangle((bbox[:2][::-1] - np.floor_divide(*bbox[2:])), bbox[2], bbox[3])
+            plt.gca().add_patch(rect)
         plt.show()
+        print(clostob[i]["bboxes"])
 
 # %%
