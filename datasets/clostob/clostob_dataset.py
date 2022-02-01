@@ -5,7 +5,7 @@ This file contains the class for generating a PyTorch dataset of CloStOb data.
 Authors
 -------
  * Mateus Riva (mateus.riva@telecom-paris.fr)"""
-
+#%%
 import os
 import numpy as np
 from torch.utils.data import Dataset
@@ -41,7 +41,7 @@ def load_dataset(base_dataset_name):
 def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list, fg_positions: list,
                    position_translation: float, position_noise: float, rescale_classes: list, 
                    rescale_range: tuple, occlusion_classes: list, occlusion_range: tuple, 
-                   bg_classes: list, bg_amount: float, flattened: bool):
+                   bg_classes: list, bg_amount: float, fine_segment: bool, flattened: bool):
     """Generates a single CloStOb image and corresponding label map.
 
     :param seed: Random number generator seed for this image.
@@ -58,6 +58,7 @@ def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list
     :param occlusion_ranges: min and max size of occlusion square.
     :param bg_classes: list of class labels to be added to the background.
     :param bg_amount: number (or range of numbers) of random images to draw on the background
+    :param fine_segment: If True, labelmaps are cut to the positive part of images.
     :param flattened: If True, return images as flattened 1D arrays. Else, return images shaped like `size`.
     :return: a tuple (image, labelmap) containing the image and corresponding labelmap.
     """
@@ -113,7 +114,11 @@ def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list
             np.s_[origin:end] for origin, end in zip(fg_origin_coords, fg_origin_coords + fg_element.shape))
         # Adding fg element
         image[fg_element_coords] = fg_element
-        labelmap[fg_element_coords] = idx + 1
+        # Adding labelmap element        
+        map_element = np.full(fg_element.shape, idx+1)
+        if fine_segment:  # If the labelmap should cut out the zero part
+            map_element[fg_element == 0] = 0
+        labelmap[fg_element_coords] = map_element
 
     # Flattening image if necessary
     if flattened:
@@ -126,6 +131,7 @@ class CloStObDataset(Dataset):
     def __init__(self, base_dataset_name: str, image_dimensions: tuple, size: int, fg_classes: list, fg_positions: list,
                  bg_classes: list, bg_amount: float, position_translation: float = 0.0, position_noise: float = 0.0,
                  rescale_classes: list = [], rescale_range: tuple = (1,1), occlusion_classes: list = [], occlusion_range: tuple = (0,0),
+                 fine_segment: bool = False,
                  flattened: bool = False, lazy_load: bool = False, transform = None, target_transform = None, start_seed: int = 0):
         """The constructor for CloStObDataset class.
 
@@ -142,6 +148,7 @@ class CloStObDataset(Dataset):
         :param occlusion_ranges: min and max size of occlusion square.
         :param bg_classes: list of class labels to be added to the background.
         :param bg_amount: number (or range of numbers) of random images to draw on the background.
+        :param fine_segment: If True, labelmaps are cut to the positive part of images.
         :param flattened: If True, return images as flattened 1D arrays. Else, return images shaped like `image_dimensions`. Default: False.
         :param lazy_load: If True, generate images on-the-fly. Else, generate and store all images in memory on initialization.
         :param transform: (optional) callable/transform to be applied to each image.
@@ -173,11 +180,12 @@ class CloStObDataset(Dataset):
         self.bg_classes = bg_classes
         self.bg_amount = bg_amount
         self.flattened = flattened
+        self.fine_segment = fine_segment
         self.start_seed = 0
 
         # If preloading, generate a list of CloStOb images and apply transforms
         if not self.lazy_load:
-            self.samples = [self.apply_transforms(generate_image(i, self.base_dataset, self.image_dimensions, self.fg_classes, self.fg_positions, self.position_translation, self.position_noise, self.rescale_classes, self.rescale_range, self.occlusion_classes, self.occlusion_range, self.bg_classes, self.bg_amount, self.flattened)) for i in range(size)]
+            self.samples = [self.apply_transforms(generate_image(i, self.base_dataset, self.image_dimensions, self.fg_classes, self.fg_positions, self.position_translation, self.position_noise, self.rescale_classes, self.rescale_range, self.occlusion_classes, self.occlusion_range, self.bg_classes, self.bg_amount, self.fine_segment, self.flattened)) for i in range(size)]
 
         self.size = size
 
@@ -186,7 +194,7 @@ class CloStObDataset(Dataset):
         if not self.lazy_load:
             sample = self.samples[idx]
         else:
-            sample = generate_image(idx, self.base_dataset, self.image_dimensions, self.fg_classes, self.fg_positions, self.position_translation, self.position_noise, self.rescale_classes, self.rescale_range, self.occlusion_classes, self.occlusion_range, self.bg_classes, self.bg_amount, self.flattened)
+            sample = generate_image(idx, self.base_dataset, self.image_dimensions, self.fg_classes, self.fg_positions, self.position_translation, self.position_noise, self.rescale_classes, self.rescale_range, self.occlusion_classes, self.occlusion_range, self.bg_classes, self.bg_amount, self.fine_segment, self.flattened)
             sample = self.apply_transforms(sample)
         return sample
 
@@ -205,7 +213,7 @@ class CloStObDataset(Dataset):
             sample["labelmap"] = self.target_transform(sample["labelmap"])
         return sample
 
-
+#%%
 if __name__ == '__main__':
     clostob = CloStObDataset(base_dataset_name="fashion",
                              image_dimensions=(200, 200),
@@ -214,12 +222,13 @@ if __name__ == '__main__':
                              fg_positions=[(0.5, 0.25), (0.5, 0.75)],
                              #rescale_classes=[0],
                              #rescale_range=(2.0,2.0),
-                             occlusion_classes=[0],
-                             occlusion_range = [5,15],
+                             #occlusion_classes=[0],
+                             #occlusion_range = [5,15],
                              bg_classes=[5, 7],
-                             bg_amount=100,
+                             bg_amount=3,
                              position_translation=0.2,
                              position_noise=0.1,
+                             fine_segment=True,
                              flattened=False)
 
     import matplotlib.pyplot as plt
@@ -230,3 +239,5 @@ if __name__ == '__main__':
         plt.subplot(122)
         plt.imshow(clostob[i]["labelmap"])
         plt.show()
+
+# %%
