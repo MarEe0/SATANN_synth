@@ -122,7 +122,7 @@ def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list
             map_element[fg_element == 0] = 0
         labelmap[fg_element_coords] = map_element
         # Adding bounding box element
-        bboxes[idx] = [*(fg_origin_coords + np.floor_divide(fg_element.shape,2)), *fg_element.shape]
+        bboxes[idx] = np.divide([*(fg_origin_coords + np.floor_divide(fg_element.shape,2)), *fg_element.shape], [*image_dimensions,*image_dimensions])
 
     # Flattening image if necessary
     if flattened:
