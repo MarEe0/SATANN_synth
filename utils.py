@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 import torch
 
 class targetToTensor:  # Simple tensor conversion (because tv.ToTensor normalizes)
@@ -75,6 +76,67 @@ def plot_output(image, target, outputs, dest_path=None):
         plt.imshow(prob_map)
         plt.title("Class {} probability".format(i))
         plt.axis("off")
+    
+    # Saving or showing
+    plt.tight_layout(pad=1.5)
+    if dest_path == None:
+        plt.show()
+    else:
+        plt.savefig(dest_path)
+        plt.clf()
+        plt.close()
+
+
+def bbox_to_plot(bbox, image_dimensions):
+    """Takes a bbox (center_x, center_y, width, height) and outputs ((topleft_x, topleft_y), width, height),
+    while also converting to image size"""
+    image_dimensions = np.concatenate([image_dimensions, image_dimensions])
+    bbox = bbox * image_dimensions
+    return [(bbox[1] - (bbox[3]//2), bbox[0] - (bbox[2]//2)), bbox[3], bbox[2]]
+
+
+def plot_output_det(image, target, outputs, dest_path=None):
+    """Plots bounding box outputs"""
+    # Converting from tensors if needed
+    if type(image) == torch.Tensor:
+        image = image.detach().cpu().numpy()
+    if type(target) == torch.Tensor:
+        target = target.detach().cpu().numpy()
+    if type(outputs) == torch.Tensor:
+        outputs = outputs.detach().cpu().numpy()
+    
+    # Squeezing single-channel image if needed
+    if image.shape[0] == 1:
+        image = image.squeeze(axis=0)
+
+    num_classes = outputs.shape[0]
+
+    # Preparing the figure
+    plt.figure(figsize=[6*(2), 6])
+
+    # Plotting the image
+    plt.subplot(1, 3, 1)
+    plt.imshow(image, cmap="gray")
+    plt.title("Image")
+    plt.axis("off")
+
+    # Plotting the labelmap/target
+    plt.subplot(1, 3, 2)
+    plt.imshow(image, cmap="gray")
+    for _class in range(num_classes):
+        rect = Rectangle(*bbox_to_plot(target[_class], image.shape), fill=False, ec=plt.get_cmap("tab10")(_class+1))
+        plt.gca().add_patch(rect)
+    plt.title("Target")
+    plt.axis("off")
+
+    # Plotting the output
+    plt.subplot(1, 3, 3)
+    plt.imshow(image, cmap="gray")
+    for _class in range(num_classes):
+        rect = Rectangle(*bbox_to_plot(outputs[_class], image.shape), fill=False, ec=plt.get_cmap("tab10")(_class+1))
+        plt.gca().add_patch(rect)
+    plt.title("Output")
+    plt.axis("off")
     
     # Saving or showing
     plt.tight_layout(pad=1.5)

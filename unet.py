@@ -75,10 +75,11 @@ class UNet(nn.Module):
 
 
 class UNetDetection(nn.Module):
-    def __init__(self, input_channels, output_size, input_size):
+    def __init__(self, input_channels, number_of_objects, input_size):
         super().__init__()
 
         self.input_size = input_size
+        self.number_of_objects = number_of_objects
 
         self.dconv_down1 = double_conv(input_channels, 64)
         self.dconv_down2 = double_conv(64, 128)
@@ -92,7 +93,10 @@ class UNetDetection(nn.Module):
         self.dconv_up2 = double_conv(128 + 256, 128)
         self.dconv_up1 = double_conv(128 + 64, 64)
 
-        self.fc_last = nn.Linear(64 * input_size[0] * input_size[1], output_size)  # Hardcoded for 2D
+        self.conv_last = nn.Conv2d(64, 64, 1)
+        self.relu_last = nn.ReLU(inplace=True)
+
+        self.fc_last = nn.Linear(64 * input_size[0] * input_size[1], number_of_objects*4)  # Hardcoded for 2D
 
 
     def forward(self, x):
@@ -120,7 +124,13 @@ class UNetDetection(nn.Module):
 
         x = self.dconv_up1(x)
 
-        out = self.fc_last(x)
+        x = self.conv_last(x)
+        x = self.relu_last(x)
+
+        x = torch.flatten(x, 1)
+
+        x = self.fc_last(x)
+        out = x.view(-1, self.number_of_objects, 4)
 
         return out
 

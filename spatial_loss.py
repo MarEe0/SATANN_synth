@@ -141,10 +141,25 @@ class SpatialPriorErrorDetection(SpatialPriorError):
     def forward(self, output):
         """Compute forward pass.
         
-        Output should be of format (B,C,2)"""
-        centroids_y, centroids_x = output[...,0], output[...,1]
+        Output should be of format (B,C,4)"""
+        # Adding a dummy "background" centroid
+        centroids_y = torch.zeros((output.size(0), output.size(1)+1))
+        centroids_x = torch.zeros((output.size(0), output.size(1)+1))
+        centroids_y[:,1:], centroids_x[:,1:] = output[:,0], output[:,1]
         dy_all, dx_all = self.compute_errors(centroids_y, centroids_x)
         
         # Aggregating the errors - TODO: other aggregations?
         error = dy_all.sum() + dx_all.sum()
+        return error
+    
+    def compute_metric(self, output):
+        """Like forward, but it return the value per object"""
+        # Adding a dummy "background" centroid
+        centroids_y = torch.zeros((output.size(0), output.size(1)+1))
+        centroids_x = torch.zeros((output.size(0), output.size(1)+1))
+        centroids_y[:,1:], centroids_x[:,1:] = output[:,:,0], output[:,:,1]
+        dy_all, dx_all = self.compute_errors(centroids_y, centroids_x)  
+
+        # Aggregating the errors **over the relations only**
+        error = dy_all.sum(dim=0) + dx_all.sum(dim=0)
         return error

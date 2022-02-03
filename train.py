@@ -14,8 +14,8 @@ import numpy as np
 import torch
 from torch.nn.functional import softmax
 
-from metrics import dice_score, count_connected_components
-from utils import mkdir, plot_output
+from metrics import dice_score, count_connected_components, jaccard
+from utils import mkdir, plot_output, plot_output_det
 
 def train_model(model, optimizer, scheduler, criterion, relational_criterion, target_key, alpha, data_loaders, metrics=None, max_epochs=100, clip_max_norm=0, training_label=None, results_path=None, vals_to_plot=5):
     """Trains a neural network model until specified criteria are met.
@@ -34,9 +34,9 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, ta
         Loss function class to be used for training.
     relational_criterion : `spatial_loss.GraphSpatialLoss`
         The relational loss object (needed even for the baseline for computing metrics).
-    target_key : `str`, one of `"labelmap"`, `"centers"`
+    target_key : `str`, one of `"labelmap"`, `"bboxes"`
         The key to the wanted target in the data dictionary. `"labelmap"` is for segmentation,
-        while `"centers"` is for detection.
+        while `"bboxes"` is for detection.
     alpha : `float`
         The weight of the relational loss. The weight of the criterion is `(1-alpha)`.
     data_loaders : `dict`
@@ -183,9 +183,22 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, ta
             if "cc" in metrics:
                 # Compute connected components per class
                 outputs_connected_components = [count_connected_components(outputs_argmax, _class) for _class in range(num_classes)]
+            if "iou" in metrics:
+                # Compute IoUs
+                # Print foreground IoUs
+                outputs_ious = [jaccard(all_val_outputs, all_val_targets, _class) for _class in range(num_classes)]
+                mean_output_ious = torch.mean(torch.stack(outputs_ious), dim=1)
+                print("Mean foreground IoUs: ", end="")
+                for mean_output_iou in mean_output_ious:
+                    print("{:.4f}, ".format(mean_output_iou.item()), end="")
+                print("")
+
 
             # Compute relational scores
-            outputs_relational_scores = relational_criterion.compute_metric(outputs_softmax)
+            if "dice" in metrics or "cc" in metrics:
+                outputs_relational_scores = relational_criterion.compute_metric(outputs_softmax)
+            else:
+                outputs_relational_scores = relational_criterion.compute_metric(all_val_outputs)
 
             # Save validation metrics
             epoch_validation_path = os.path.join(validation_path, "epoch_{}".format(epoch))
@@ -223,6 +236,12 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, ta
                     validation_metrics["mean"][_class]["Connected Components"] = np.mean(outputs_connected_components[_class])
                     for val_index in range(all_val_outputs.shape[0]):
                         validation_metrics["all"][val_index][_class]["Connected Components"] = outputs_connected_components[_class][val_index]
+            # If iou is one of the validation metrics:
+            if "iou" in metrics:
+                for _class in range(num_classes):
+                    validation_metrics["mean"][_class]["Jaccard"] = torch.mean(outputs_ious[_class]).item()
+                    for val_index in range(all_val_outputs.shape[0]):
+                        validation_metrics["all"][val_index][_class]["Jaccard"] = outputs_ious[_class][val_index].item()
             
 
             with open(os.path.join(epoch_validation_path, "summary.json"), 'w') as f:
@@ -235,6 +254,11 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, ta
                                                                             all_val_targets[:vals_to_plot], 
                                                                             outputs_softmax[:vals_to_plot])):
                     plot_output(val_image, val_targets, val_outputs, os.path.join(epoch_validation_path, "val{}.png".format(i)))
+            if "iou" in metrics:
+                for i, (val_image, val_targets, val_outputs) in enumerate(zip(all_val_images[:vals_to_plot], 
+                                                                            all_val_targets[:vals_to_plot], 
+                                                                            all_val_outputs[:vals_to_plot])):
+                    plot_output_det(val_image, val_targets, val_outputs, os.path.join(epoch_validation_path, "val{}.png".format(i)))
 
     # Load best weights
     model.load_state_dict(best_model_weights)

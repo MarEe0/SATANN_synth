@@ -17,10 +17,10 @@ import torchvision as tv
 
 from train import train_model
 from unet import UNetDetection
-from utils import targetToTensor, mkdir, plot_output
-from metrics import iou_score
+from utils import targetToTensor, mkdir, plot_output_det
+from metrics import jaccard
 
-def run_experiment(model_seed, dataset_split_seed, dataset, test_dataset, relational_criterion, alpha, deterministic=False, experiment_label=None):
+def run_experiment(model_seed, dataset_split_seed, dataset, test_dataset, image_dimensions, relational_criterion, alpha, deterministic=False, experiment_label=None):
     results_path = "results/results_det"
 
     # Default training label: timestamp of start of training
@@ -62,18 +62,18 @@ def run_experiment(model_seed, dataset_split_seed, dataset, test_dataset, relati
 
     # Initializing model
     torch.manual_seed(model_seed)  # Fixing random weight initialization
-    model = UNetDetection(input_channels=1, output_size=dataset.number_of_classes * 2)  # 2 coordinates per class
+    model = UNetDetection(input_channels=1, number_of_objects=dataset.number_of_classes-1, input_size=image_dimensions)  # 2 coordinates per class
     model = model.to(device=device)
 
     # Preparing optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, betas=betas, eps=eps, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
     # Preparing loss
-    criterion = iouloss()
+    criterion = torch.nn.SmoothL1Loss(reduction="sum", beta=1)
 
     # Training
-    model = train_model(model, optimizer, scheduler, criterion, relational_criterion, "labelmap", alpha, data_loaders,
-                        max_epochs=100, metrics=["dice","cc"], clip_max_norm=1, training_label=experiment_label,
+    model = train_model(model, optimizer, scheduler, criterion, relational_criterion, "bboxes", alpha, data_loaders,
+                        max_epochs=100, metrics=["iou"], clip_max_norm=0, training_label=experiment_label,
                         results_path=results_path)
 
     # Testing
@@ -94,9 +94,16 @@ def run_experiment(model_seed, dataset_split_seed, dataset, test_dataset, relati
         num_classes = test_outputs.shape[1]  # Get number of classes
 
         # Compute relational scores
-        outputs_relational_scores = relational_criterion.compute_metric(outputs_softmax)
+        outputs_relational_scores = relational_criterion.compute_metric(test_outputs)
 
-        # Print foreground SOMETHING
+        # Compute IoUs
+        # Print foreground IoUs
+        outputs_ious = [jaccard(test_outputs, truths, _class) for _class in range(num_classes)]
+        mean_output_ious = torch.mean(torch.stack(outputs_ious), dim=1)
+        print("Mean foreground IoUs: ", end="")
+        for mean_output_iou in mean_output_ious:
+            print("{:.4f}, ".format(mean_output_iou.item()), end="")
+        print("")
 
         # Save validation metrics
         mkdir(test_path)
@@ -104,14 +111,14 @@ def run_experiment(model_seed, dataset_split_seed, dataset, test_dataset, relati
             [
                 {
                     _class : {
-                        ious: ious,
+                        "Jaccard": outputs_ious[_class][test_index].item(),
                         "Relational Loss" : outputs_relational_scores[test_index].item()
                     } for _class in range(num_classes)
                 } for test_index in range(test_outputs.shape[0])
             ],
             "mean": {
                 _class : {
-                    ious: mean(ious),
+                    "Jaccard": torch.mean(outputs_ious[_class]).item(),
                     "Relational Loss" : torch.mean(outputs_relational_scores).item()
                 } for _class in range(num_classes)
             }
@@ -121,21 +128,20 @@ def run_experiment(model_seed, dataset_split_seed, dataset, test_dataset, relati
 
 
         # Save test
-        for i, (test_image, test_targets, test_outputs) in enumerate(zip(all_test_images, 
-                                                                        truths, 
-                                                                        outputs_something)):
-            #plot_output(test_image, test_targets, test_outputs, os.path.join(test_path, "test{}.png".format(i)))
-            plot_output_det(test_image, test_targets, test_outputs, os.path.join(test_path, "test{}.png".format(i)))
+        for i, (val_image, val_targets, val_outputs) in enumerate(zip(all_test_images, 
+                                                                    truths, 
+                                                                    test_outputs)):
+            plot_output_det(val_image, val_targets, val_outputs, os.path.join(test_path, "test{}.png".format(i)))
 
 
 
 from datasets.clostob.clostob_dataset import CloStObDataset
-from spatial_loss import GraphSpatialLoss
+from spatial_loss import SpatialPriorErrorDetection
 from collections import deque
 
 if __name__ == "__main__":
     # Testing experiments
-    dataset_size = 20
+    dataset_size = 400
     test_set_size = 30
 
     # Preparing the foreground
@@ -152,7 +158,7 @@ if __name__ == "__main__":
     graph_relations = [[1, 2, 0, -0.4],
                        [1, 3, 0.3, -0.4],
                        [2, 3, 0.3, 0]]   
-    relational_criterion = GraphSpatialLoss(graph_relations, image_dimensions=image_dimensions, num_classes=len(fg_classes))
+    relational_criterion = SpatialPriorErrorDetection(graph_relations)
 
     # Preparing dataset transforms:
     transform = tv.transforms.Compose(                                  # For the images:
@@ -229,5 +235,6 @@ if __name__ == "__main__":
                     # Run experiment
                     run_experiment(model_seed=model_seed, dataset_split_seed=dataset_split_seed,
                                 dataset=train_dataset, test_dataset=test_dataset,
+                                image_dimensions=image_dimensions,
                                 relational_criterion=relational_criterion, alpha=alpha,
                                 deterministic=True, experiment_label=os.path.join("dataset_{}".format(dataset_size),experiment_label))
