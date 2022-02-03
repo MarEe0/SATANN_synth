@@ -24,6 +24,11 @@ def double_conv3d(in_channels, out_channels):
         nn.ReLU(inplace=True)
     )
 
+def detection_head(in_features, out_features):
+    return nn.Sequential(
+        nn.Linear(in_features, out_features)
+    )
+
 
 class UNet(nn.Module):
     def __init__(self, input_channels, output_channels):
@@ -96,7 +101,7 @@ class UNetDetection(nn.Module):
         self.conv_last = nn.Conv2d(64, 64, 1)
         self.relu_last = nn.ReLU(inplace=True)
 
-        self.fc_last = nn.Linear(64 * input_size[0] * input_size[1], number_of_objects*4)  # Hardcoded for 2D
+        self.det_head = detection_head(64 * input_size[0] * input_size[1], number_of_objects*4)  # Hardcoded for 2D
 
 
     def forward(self, x):
@@ -129,7 +134,7 @@ class UNetDetection(nn.Module):
 
         x = torch.flatten(x, 1)
 
-        x = self.fc_last(x)
+        x = self.det_head(x)
         out = x.view(-1, self.number_of_objects, 4)
 
         return out
