@@ -17,7 +17,7 @@ from torch.nn.functional import softmax
 from metrics import dice_score, count_connected_components, jaccard
 from utils import mkdir, plot_output, plot_output_det
 
-def train_model(model, optimizer, scheduler, criterion, relational_criterion, target_key, alpha, data_loaders, metrics=None, max_epochs=100, clip_max_norm=0, training_label=None, results_path=None, vals_to_plot=5):
+def train_model(model, optimizer, scheduler, criterion, relational_criterion, target_key, alpha, data_loaders, metrics=None, max_epochs=100, loss_strength=1, clip_max_norm=0, training_label=None, results_path=None, vals_to_plot=5):
     """Trains a neural network model until specified criteria are met.
 
     This function is a generic PyTorch NN training loop.
@@ -101,7 +101,7 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, ta
                                    postfix={"loss": float("inf")})
             for item_pair in items_pbar:
                 images = item_pair["image"].to(device)
-                targets = item_pair[target_key].to(device)
+                targets = item_pair[target_key].to(device, dtype=torch.float)
 
                 # Zeroing gradients for a new minibatch
                 optimizer.zero_grad()
@@ -109,7 +109,7 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, ta
                 # Disabling gradients if we are in val phase
                 with torch.set_grad_enabled(phase == "train"):
                     # Forward
-                    outputs = model(images)
+                    outputs = model(images).float()
                     # Losses
                     if alpha < 1:
                         crit_loss = criterion(outputs, targets)
@@ -119,7 +119,7 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, ta
                         rel_loss = relational_criterion(outputs)
                     else:
                         rel_loss = torch.tensor(0)
-                    loss = (1-alpha)*crit_loss + (alpha)*rel_loss
+                    loss = ((1-alpha)*crit_loss + (alpha)*rel_loss) * loss_strength
                     # Backward (only in training phase)
                     if phase == "train":
                         loss.backward()
