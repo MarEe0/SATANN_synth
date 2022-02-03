@@ -17,6 +17,7 @@ import torchvision as tv
 
 from train import train_model
 from unet import UNetDetection
+from detection_loss import IoULoss
 from utils import targetToTensor, mkdir, plot_output_det
 from metrics import jaccard
 
@@ -69,11 +70,13 @@ def run_experiment(model_seed, dataset_split_seed, dataset, test_dataset, image_
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, betas=betas, eps=eps, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
     # Preparing loss
-    criterion = torch.nn.SmoothL1Loss(reduction="sum", beta=1)
+    criterion = torch.nn.SmoothL1Loss(reduction="sum", beta=3)
+    #criterion = IoULoss()
+    #criterion = torch.nn.MSELoss(reduction="mean")
 
     # Training
     model = train_model(model, optimizer, scheduler, criterion, relational_criterion, "bboxes", alpha, data_loaders,
-                        max_epochs=100, metrics=["iou"], clip_max_norm=0, training_label=experiment_label,
+                        max_epochs=100, metrics=["iou"], loss_strength=1, clip_max_norm=100, training_label=experiment_label,
                         results_path=results_path)
 
     # Testing
