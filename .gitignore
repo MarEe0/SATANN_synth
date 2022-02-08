@@ -132,6 +132,7 @@ dmypy.json
 .vscode
 
 # Large results
+log.txt
 results_clean
 gradcam/gradcam_images
 results/results_seg
