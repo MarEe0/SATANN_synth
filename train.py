@@ -101,7 +101,7 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, ta
                                    postfix={"loss": float("inf")})
             for item_pair in items_pbar:
                 images = item_pair["image"].to(device)
-                targets = item_pair[target_key].to(device, dtype=torch.float)
+                targets = item_pair[target_key].to(device)
 
                 # Zeroing gradients for a new minibatch
                 optimizer.zero_grad()
@@ -109,7 +109,7 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, ta
                 # Disabling gradients if we are in val phase
                 with torch.set_grad_enabled(phase == "train"):
                     # Forward
-                    outputs = model(images).float()
+                    outputs = model(images)
                     # Losses
                     if alpha < 1:
                         crit_loss = criterion(outputs, targets)
