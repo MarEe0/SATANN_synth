@@ -14,6 +14,26 @@ def dice_score(outputs, labels, _class):
     
     return dice
 
+def precision(outputs, labels, _class):
+    """Computes the precision of the given class"""
+    axes = tuple(range(1,len(labels.shape)))
+    tp = torch.sum((outputs == _class).float() * (labels == _class).float(), dim=axes)
+    fp = torch.sum((outputs == _class).float() * (labels != _class).float(), dim=axes)
+
+    precision = tp / (tp + fp)
+
+    return precision
+
+def recall(outputs, labels, _class):
+    """Computes the recall of the given class"""
+    axes = tuple(range(1,len(labels.shape)))
+    tp = torch.sum((outputs == _class).float() * (labels == _class).float(), dim=axes)
+    fn = torch.sum((outputs != _class).float() * (labels == _class).float(), dim=axes)
+
+    recall = tp / (tp + fn)
+    
+    return recall
+
 def count_connected_components(outputs, _class):
     """Counts how many connected components the output has for a given class"""
     masks = (outputs == _class).detach().cpu().numpy()
