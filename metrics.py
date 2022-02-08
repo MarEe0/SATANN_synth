@@ -22,6 +22,9 @@ def precision(outputs, labels, _class):
 
     precision = tp / (tp + fp)
 
+    # replacing nans with 0
+    precision = torch.nan_to_num(precision, nan=0)
+
     return precision
 
 def recall(outputs, labels, _class):
@@ -31,6 +34,9 @@ def recall(outputs, labels, _class):
     fn = torch.sum((outputs != _class).float() * (labels == _class).float(), dim=axes)
 
     recall = tp / (tp + fn)
+
+    # replacing nans with 0
+    recall = torch.nan_to_num(recall, nan=0)
     
     return recall
 
