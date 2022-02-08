@@ -150,100 +150,101 @@ from collections import deque
 
 if __name__ == "__main__":
     # Testing experiments
-    dataset_size = 400
-    test_set_size = 30
+    #dataset_size = 400
+    for dataset_size in [20,50,100,200,400]:
+        test_set_size = 30
 
-    # Preparing the foreground
-    fg_label = "T"
-    fg_classes = [0, 1, 8]
-    base_fg_positions = [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)]
-    position_translation=0.2
-    position_noise=0.1
+        # Preparing the foreground
+        fg_label = "T"
+        fg_classes = [0, 1, 8]
+        base_fg_positions = [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)]
+        position_translation=0.2
+        position_noise=0.1
 
-    # Also setting the image dimensions in advance
-    image_dimensions = [256, 256]
-    
-    # Preparing the relations
-    graph_relations = [[1, 2, 0, -0.4],
-                       [1, 3, 0.3, -0.4],
-                       [2, 3, 0.3, 0]]   
-    relational_criterion = SpatialPriorErrorSegmentation(graph_relations, image_dimensions=image_dimensions, num_classes=len(fg_classes))
-
-    # Preparing dataset transforms:
-    transform = tv.transforms.Compose(                                  # For the images:
-        [tv.transforms.ToTensor(),                                      # Convert to torch.Tensor CxHxW type
-         tv.transforms.Normalize((255/2,), (255/2,), inplace=True)])    # Normalize from [0,255] to [-1,1] range
-    target_transform = tv.transforms.Compose(                           # For the labelmaps:
-        [targetToTensor()])                                             # Convert to torch.Tensor type
-
-    # Experiment configurations
-    model_seeds = range(2)
-    dataset_split_seeds = range(2)
-    #alphas=[0, 0.2, 0.5, 0.7]
-    alphas = [0, 0.5]
-    experimental_configs = [{"label": fg_label + "_easy_noise", "bg_classes": [7], "bg_amount": 3},
-                            {"label": fg_label + "_hard_noise", "bg_classes": [0], "bg_amount": 3},
-                            {"label": fg_label + "_veryhard_noise", "bg_classes": [0,1,8], "bg_amount": 6}]
-    
-    # Running experiments
-    for experimental_config in experimental_configs:
-        for model_seed in model_seeds:
-            for dataset_split_seed in dataset_split_seeds:
-                for alpha in alphas:
-                    # Label of experiment:
-                    experiment_label = "{}_m{}_d{}_a{}".format(experimental_config["label"], model_seed, dataset_split_seed, alpha)
-
-                    # Preparing train dataset
-                    train_dataset = CloStObDataset(base_dataset_name="fashion",
-                                                image_dimensions=image_dimensions,
-                                                size=dataset_size,
-                                                fg_classes=fg_classes,
-                                                fg_positions=base_fg_positions,
-                                                position_translation=position_translation,
-                                                position_noise=position_noise,
-                                                bg_classes=experimental_config["bg_classes"], # Background class from config
-                                                bg_amount=experimental_config["bg_amount"],
-                                                flattened=False,
-                                                lazy_load=False,
-                                                transform=transform,
-                                                target_transform=target_transform)
-                    
-                    # Preparing the rotated part of the test set
-                    rotated_fg_positions = deque(base_fg_positions)
-                    rotated_fg_positions.rotate(1)
-                    # Preparing the swap part of the test set
-                    swap_fg_positions = copy.copy(base_fg_positions)
-                    swap_fg_positions[1], swap_fg_positions[2] = swap_fg_positions[2], swap_fg_positions[1]
-                    # Preparing the distant part of the test set
-                    dist_fg_position = copy.copy(base_fg_positions)
-                    dist_fg_position[0] = (dist_fg_position[0][0], dist_fg_position[0][1]-0.1)
-                    dist_fg_position[1] = (dist_fg_position[1][0], dist_fg_position[1][1]+0.1)
-                    dist_fg_position[2] = (dist_fg_position[2][0], dist_fg_position[2][1]+0.1)
-                    # Preparing the size part of the test set
-                    # TODO
-                    # Preparing the affine-transform of the test set
-                    # TODO
-                    # Preparing test dataset
-                    test_dataset = torch.utils.data.ConcatDataset([
-                        CloStObDataset(base_dataset_name="fashion",
-                                        image_dimensions=image_dimensions,
-                                        size=test_set_size,
-                                        fg_classes=fg_classes,
-                                        fg_positions=fg_positions,
-                                        position_translation=position_translation,
-                                        position_noise=position_noise,
-                                        bg_classes=experimental_config["bg_classes"], # Background class from config
-                                        bg_amount=experimental_config["bg_amount"],
-                                        flattened=False,
-                                        lazy_load=False,
-                                        transform=transform,
-                                        target_transform=target_transform,
-                                        start_seed=dataset_size)
-                        for fg_positions in [base_fg_positions, rotated_fg_positions, swap_fg_positions, dist_fg_position]
-                    ])
+        # Also setting the image dimensions in advance
+        image_dimensions = [256, 256]
         
-                    # Run experiment
-                    run_experiment(model_seed=model_seed, dataset_split_seed=dataset_split_seed,
-                                dataset=train_dataset, test_dataset=test_dataset,
-                                relational_criterion=relational_criterion, alpha=alpha,
-                                deterministic=True, experiment_label=os.path.join("dataset_{}".format(dataset_size),experiment_label))
+        # Preparing the relations
+        graph_relations = [[1, 2, 0, -0.4],
+                        [1, 3, 0.3, -0.4],
+                        [2, 3, 0.3, 0]]   
+        relational_criterion = SpatialPriorErrorSegmentation(graph_relations, image_dimensions=image_dimensions, num_classes=len(fg_classes))
+
+        # Preparing dataset transforms:
+        transform = tv.transforms.Compose(                                  # For the images:
+            [tv.transforms.ToTensor(),                                      # Convert to torch.Tensor CxHxW type
+            tv.transforms.Normalize((255/2,), (255/2,), inplace=True)])    # Normalize from [0,255] to [-1,1] range
+        target_transform = tv.transforms.Compose(                           # For the labelmaps:
+            [targetToTensor()])                                             # Convert to torch.Tensor type
+
+        # Experiment configurations
+        model_seeds = range(5)
+        dataset_split_seeds = range(5)
+        #alphas=[0, 0.2, 0.5, 0.7]
+        alphas = [0, 0.5]
+        experimental_configs = [{"label": fg_label + "_easy_noise", "bg_classes": [7], "bg_amount": 3},
+                                {"label": fg_label + "_hard_noise", "bg_classes": [0], "bg_amount": 3},
+                                {"label": fg_label + "_veryhard_noise", "bg_classes": [0,1,8], "bg_amount": 6}]
+        
+        # Running experiments
+        for experimental_config in experimental_configs:
+            for model_seed in model_seeds:
+                for dataset_split_seed in dataset_split_seeds:
+                    for alpha in alphas:
+                        # Label of experiment:
+                        experiment_label = "{}_m{}_d{}_a{}".format(experimental_config["label"], model_seed, dataset_split_seed, alpha)
+
+                        # Preparing train dataset
+                        train_dataset = CloStObDataset(base_dataset_name="fashion",
+                                                    image_dimensions=image_dimensions,
+                                                    size=dataset_size,
+                                                    fg_classes=fg_classes,
+                                                    fg_positions=base_fg_positions,
+                                                    position_translation=position_translation,
+                                                    position_noise=position_noise,
+                                                    bg_classes=experimental_config["bg_classes"], # Background class from config
+                                                    bg_amount=experimental_config["bg_amount"],
+                                                    flattened=False,
+                                                    lazy_load=False,
+                                                    transform=transform,
+                                                    target_transform=target_transform)
+                        
+                        # Preparing the rotated part of the test set
+                        rotated_fg_positions = deque(base_fg_positions)
+                        rotated_fg_positions.rotate(1)
+                        # Preparing the swap part of the test set
+                        swap_fg_positions = copy.copy(base_fg_positions)
+                        swap_fg_positions[1], swap_fg_positions[2] = swap_fg_positions[2], swap_fg_positions[1]
+                        # Preparing the distant part of the test set
+                        dist_fg_position = copy.copy(base_fg_positions)
+                        dist_fg_position[0] = (dist_fg_position[0][0], dist_fg_position[0][1]-0.1)
+                        dist_fg_position[1] = (dist_fg_position[1][0], dist_fg_position[1][1]+0.1)
+                        dist_fg_position[2] = (dist_fg_position[2][0], dist_fg_position[2][1]+0.1)
+                        # Preparing the size part of the test set
+                        # TODO
+                        # Preparing the affine-transform of the test set
+                        # TODO
+                        # Preparing test dataset
+                        test_dataset = torch.utils.data.ConcatDataset([
+                            CloStObDataset(base_dataset_name="fashion",
+                                            image_dimensions=image_dimensions,
+                                            size=test_set_size,
+                                            fg_classes=fg_classes,
+                                            fg_positions=fg_positions,
+                                            position_translation=position_translation,
+                                            position_noise=position_noise,
+                                            bg_classes=experimental_config["bg_classes"], # Background class from config
+                                            bg_amount=experimental_config["bg_amount"],
+                                            flattened=False,
+                                            lazy_load=False,
+                                            transform=transform,
+                                            target_transform=target_transform,
+                                            start_seed=dataset_size)
+                            for fg_positions in [base_fg_positions, rotated_fg_positions, swap_fg_positions, dist_fg_position]
+                        ])
+            
+                        # Run experiment
+                        run_experiment(model_seed=model_seed, dataset_split_seed=dataset_split_seed,
+                                    dataset=train_dataset, test_dataset=test_dataset,
+                                    relational_criterion=relational_criterion, alpha=alpha,
+                                    deterministic=True, experiment_label=os.path.join("dataset_{}".format(dataset_size),experiment_label))
