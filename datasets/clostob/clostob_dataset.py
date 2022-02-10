@@ -69,8 +69,8 @@ def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list
     image, labelmap = np.zeros(image_dimensions, dtype="float32"), np.zeros(image_dimensions, dtype=int)
     # Creating empty bounding boxes list - one (x,y,w,h) tuple for each fg_class
     bboxes = np.zeros((len(fg_classes), 4))
-    # Creating empty background bounding boxes list - one (x,y,w,h,c) tuple for each bg element
-    bg_bboxes = np.zeros((bg_amount, 5))
+    # Creating background labelmap
+    bg_labelmap = np.zeros(image_dimensions, dtype=int)
     # Getting shape of base dataset images
     base_shape = base_dataset[bg_classes[0]][0].shape
     # Initialising limits on coordinates to avoid images "leaking out the border"
@@ -87,8 +87,11 @@ def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list
             np.s_[origin:end] for origin, end in zip(bg_origin_coords, bg_origin_coords + base_shape))
         # Adding bg element
         image[bg_element_coords] = bg_element[0]
-        # Adding to background bounding box lists
-        bg_bboxes[idx] = np.concatenate([np.divide([*(bg_origin_coords + np.floor_divide(bg_element[0].shape,2)), *bg_element[0].shape], [*image_dimensions,*image_dimensions]), [bg_element[1]]])
+        # Adding to background labelmap
+        bg_map_element = np.full(bg_element[0].shape, bg_element[1])
+        if fine_segment:  # If the labelmap should cut out the zero part
+            bg_map_element[bg_element[0] == 0] = 0
+        bg_labelmap[bg_element_coords] = bg_map_element
 
     # Preparing fg coordinates
     fg_positions = np.array(fg_positions)
@@ -134,7 +137,7 @@ def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list
     if flattened:
         image = image.flatten()
 
-    return {"image": image, "labelmap": labelmap, "bboxes": bboxes, "bg_bboxes": bg_bboxes}
+    return {"image": image, "labelmap": labelmap, "bboxes": bboxes, "bg_labelmap": bg_labelmap}
 
 
 class CloStObDataset(Dataset):
@@ -248,17 +251,18 @@ if __name__ == '__main__':
     import matplotlib.patches as patches
 
     for i in range(3):
-        plt.subplot(121)
+        plt.subplot(131)
         plt.imshow(clostob[i]["image"], cmap="gray")
-        plt.subplot(122)
+        plt.subplot(132)
         plt.imshow(clostob[i]["labelmap"])
         for bbox in clostob[i]["bboxes"]:
             bbox = bbox*200
             plt.scatter([bbox[1]],[bbox[0]])
             rect = patches.Rectangle((bbox[:2][::-1] - np.floor_divide(*bbox[2:])), bbox[2], bbox[3])
             plt.gca().add_patch(rect)
+        plt.subplot(133)
+        plt.imshow(clostob[i]["bg_labelmap"])
         plt.show()
         print(clostob[i]["bboxes"])
-        print(clostob[i]["bg_bboxes"])
 
 # %%
