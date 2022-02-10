@@ -69,20 +69,26 @@ def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list
     image, labelmap = np.zeros(image_dimensions, dtype="float32"), np.zeros(image_dimensions, dtype=int)
     # Creating empty bounding boxes list - one (x,y,w,h) tuple for each fg_class
     bboxes = np.zeros((len(fg_classes), 4))
+    # Creating empty background bounding boxes list - one (x,y,w,h,c) tuple for each bg element
+    bg_bboxes = np.zeros((bg_amount, 5))
     # Getting shape of base dataset images
     base_shape = base_dataset[bg_classes[0]][0].shape
     # Initialising limits on coordinates to avoid images "leaking out the border"
     coordinates_limit = tuple(np.array(image_dimensions) - base_shape)
 
+    # Preparing list of potential background elements
+    bg_chosen_classes = rng.choice(bg_classes, bg_amount, replace=True)
+    bg_elements = [(rng.choice(base_dataset[bg_class]), bg_class) for bg_class in bg_chosen_classes]
     # Distributing background images
-    for bg_element in rng.choice(
-            [item for sublist in [base_dataset[bg_class] for bg_class in bg_classes] for item in sublist], bg_amount):
+    for idx, bg_element in enumerate(bg_elements):
         # Choosing random coordinates
         bg_origin_coords = rng.integers(np.zeros_like(image_dimensions), coordinates_limit)
         bg_element_coords = tuple(
             np.s_[origin:end] for origin, end in zip(bg_origin_coords, bg_origin_coords + base_shape))
         # Adding bg element
-        image[bg_element_coords] = bg_element
+        image[bg_element_coords] = bg_element[0]
+        # Adding to background bounding box lists
+        bg_bboxes[idx] = np.concatenate([np.divide([*(bg_origin_coords + np.floor_divide(bg_element[0].shape,2)), *bg_element[0].shape], [*image_dimensions,*image_dimensions]), [bg_element[1]]])
 
     # Preparing fg coordinates
     fg_positions = np.array(fg_positions)
@@ -128,7 +134,7 @@ def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list
     if flattened:
         image = image.flatten()
 
-    return {"image": image, "labelmap": labelmap, "bboxes": bboxes}
+    return {"image": image, "labelmap": labelmap, "bboxes": bboxes, "bg_bboxes": bg_bboxes}
 
 
 class CloStObDataset(Dataset):
@@ -216,6 +222,9 @@ class CloStObDataset(Dataset):
         if self.target_transform is not None:
             sample["labelmap"] = self.target_transform(sample["labelmap"])
         return sample
+    
+    def generate_meaningless_image(self, _class):
+        raise NotImplementedError("Still not implemented")
 
 #%%
 if __name__ == '__main__':
@@ -244,10 +253,12 @@ if __name__ == '__main__':
         plt.subplot(122)
         plt.imshow(clostob[i]["labelmap"])
         for bbox in clostob[i]["bboxes"]:
+            bbox = bbox*200
             plt.scatter([bbox[1]],[bbox[0]])
             rect = patches.Rectangle((bbox[:2][::-1] - np.floor_divide(*bbox[2:])), bbox[2], bbox[3])
             plt.gca().add_patch(rect)
         plt.show()
         print(clostob[i]["bboxes"])
+        print(clostob[i]["bg_bboxes"])
 
 # %%
