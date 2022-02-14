@@ -102,6 +102,7 @@ def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list
     fg_positions += rng.uniform(low=-position_noise / 2, high=position_noise / 2, size=fg_positions.shape)
     # Converting to real pixel coordinates
     fg_origin_coords_set = (fg_positions * image_dimensions - np.array(base_shape) // 2).astype(int)
+    fg_origin_coords_set[fg_origin_coords_set<0] = 0  # Guaranteeing no negative values
 
     # Distributing fg images
     to_rescale = {fg_class : fg_class in rescale_classes for fg_class in fg_classes}
@@ -228,6 +229,25 @@ class CloStObDataset(Dataset):
     
     def generate_meaningless_image(self, _class):
         raise NotImplementedError("Still not implemented")
+    
+    def generate_reference_shifts(self, idx, reference_class, stride=32, element_shape=(28,28)):
+        """Generates a set of images with shifted references."""
+        set_of_shifts = []
+        shifted_fg_positions = self.fg_positions
+        idx_to_shift = self.fg_classes.index(reference_class)
+        normed_element_shape = ((element_shape[0]//2)/self.image_dimensions[0],
+                                (element_shape[1]//2)/self.image_dimensions[1])
+        
+        set_of_anchors = [(x,y) for x in range(0, self.image_dimensions[0]-element_shape[0], stride) for y in range(0, self.image_dimensions[1]-element_shape[1], stride)]
+        for x_anchor_base, y_anchor_base in set_of_anchors:
+                # Putting the reference in its proper place
+                x_anchor, y_anchor = x_anchor_base/self.image_dimensions[0], y_anchor_base/self.image_dimensions[1]
+                shifted_fg_positions[idx_to_shift] = (x_anchor + normed_element_shape[0], y_anchor + normed_element_shape[1])
+
+                sample = generate_image(idx, self.base_dataset, self.image_dimensions, self.fg_classes, shifted_fg_positions, 0, 0, self.rescale_classes, self.rescale_range, self.occlusion_classes, self.occlusion_range, self.bg_classes, self.bg_amount, self.fine_segment, self.flattened)
+                sample = self.apply_transforms(sample)
+                set_of_shifts.append(sample)
+        return set_of_shifts, set_of_anchors
 
 #%%
 if __name__ == '__main__':
@@ -250,16 +270,25 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     import matplotlib.patches as patches
 
+    shifts, anchors = clostob.generate_reference_shifts(0, 1, 32)
+    print(len(shifts))
+    for shift in shifts:
+        plt.subplot(121)
+        plt.imshow(shift["image"], cmap="gray")
+        plt.subplot(122)
+        plt.imshow(shift["labelmap"])
+        plt.show()
+
     for i in range(3):
         plt.subplot(131)
         plt.imshow(clostob[i]["image"], cmap="gray")
         plt.subplot(132)
         plt.imshow(clostob[i]["labelmap"])
-        for bbox in clostob[i]["bboxes"]:
-            bbox = bbox*200
-            plt.scatter([bbox[1]],[bbox[0]])
-            rect = patches.Rectangle((bbox[:2][::-1] - np.floor_divide(*bbox[2:])), bbox[2], bbox[3])
-            plt.gca().add_patch(rect)
+        #for bbox in clostob[i]["bboxes"]:
+        #    bbox = bbox*200
+        #    plt.scatter([bbox[1]],[bbox[0]])
+        #    rect = patches.Rectangle((bbox[:2][::-1] - np.floor_divide(*bbox[2:])), bbox[2], bbox[3])
+        #    plt.gca().add_patch(rect)
         plt.subplot(133)
         plt.imshow(clostob[i]["bg_labelmap"])
         plt.show()
