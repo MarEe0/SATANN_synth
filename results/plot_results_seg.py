@@ -122,6 +122,8 @@ def plot_experiment(path_base, experiment_label):
     plt.savefig(os.path.join(path_results, "val", "rel_ccs_per_epoch.png"))
     plt.close()
 
+    return
+
     # Plotting foreground class Dice per test output
     test_class_dices = {}
     with open(os.path.join(path_results, "test", "summary.json")) as f:
@@ -175,12 +177,12 @@ def plot_experiment(path_base, experiment_label):
     plt.close()
 
 if __name__ == "__main__":
-    path_base = "/home/mriva/Recherche/PhD/SATANN/synthetic/results/results_sef/dataset_100"
+    path_base = "/media/mriva/LaCie/SATANN/synthetic_fine_segmentation_results/results_seg/dataset_20"
     experiment_labels = ["T_easy_noise", "T_hard_noise", "T_veryhard_noise"]
-    model_seeds = range(2)
-    dataset_seeds = range(2)
+    model_seeds = range(5)
+    dataset_seeds = range(5)
     #alphas = [0, 0.2, 0.5, 0.7]
-    alphas = [0, 0.5]
+    alphas = [0]
 
     for experiment_label in experiment_labels:
         for model_seed in model_seeds:
