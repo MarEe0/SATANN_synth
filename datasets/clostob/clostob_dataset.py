@@ -102,7 +102,9 @@ def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list
     fg_positions += rng.uniform(low=-position_noise / 2, high=position_noise / 2, size=fg_positions.shape)
     # Converting to real pixel coordinates
     fg_origin_coords_set = (fg_positions * image_dimensions - np.array(base_shape) // 2).astype(int)
-    fg_origin_coords_set[fg_origin_coords_set<0] = 0  # Guaranteeing no negative values
+    fg_origin_coords_set[fg_origin_coords_set<0] = 0  # Guaranteeing no underflow
+    fg_origin_coords_set[:,0][fg_origin_coords_set[:,0]>coordinates_limit[0]] = coordinates_limit[0]  # Guaranteeing no overflow
+    fg_origin_coords_set[:,1][fg_origin_coords_set[:,1]>coordinates_limit[1]] = coordinates_limit[1]  # Guaranteeing no overflow
 
     # Distributing fg images
     to_rescale = {fg_class : fg_class in rescale_classes for fg_class in fg_classes}
