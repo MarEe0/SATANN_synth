@@ -28,7 +28,7 @@ def label_to_name(label):
 if __name__ == "__main__":
     base_path = "/media/mriva/LaCie/SATANN/synthetic_fine_segmentation_results/results_seg"
     # Iterating over each dataset size
-    for dataset_size in [400]:
+    for dataset_size in [1000]:
         base_dataset_path = os.path.join(base_path, "dataset_{}".format(dataset_size))
 
         test_set_size = 10
@@ -96,7 +96,7 @@ if __name__ == "__main__":
                 precisions = {_class : {anchor: torch.zeros(test_set_size*len(initialization_paths)) for anchor in all_anchors} for _class in classes}
                 recalls = {_class : {anchor: torch.zeros(test_set_size*len(initialization_paths)) for anchor in all_anchors} for _class in classes}
                 for init_idx, initialization_path in enumerate(initialization_paths):
-                    print("Doing {},ref {},{}".format(dataset_size, reference_class, os.path.split(initialization_path)[-1]))
+                    print("Doing {}, ref {}, {}".format(dataset_size, reference_class, os.path.split(initialization_path)[-1]))
                     # Loading the specified model
                     model_path = os.path.join(initialization_path, "best_model.pth")
                     model = UNet(input_channels=1, output_channels=4).to(device="cuda")
@@ -128,6 +128,12 @@ if __name__ == "__main__":
                         for idx, (class_recall, anchor) in enumerate(zip(class_recalls, anchors_set)):
                             current_idx = floor((idx/len(all_anchors))+(init_idx*test_set_size))
                             recalls[_class][anchor][current_idx] = class_recall
+                    
+                    #for item_pair, output_argmax, anchor in zip(shifts_set, outputs_argmax, anchors_set):
+                    #    plt.subplot(121); plt.imshow(item_pair["image"][0].detach().cpu().numpy(), cmap="gray")
+                    #    plt.subplot(122); plt.imshow(output_argmax.detach().cpu().numpy())
+                    #    plt.title("Anchor {} - $\\mu$R={:.3f}".format(anchor, torch.mean(recalls[1][anchor][:((init_idx+1)*test_set_size)]).item()))
+                    #    plt.show()
 
                 # Got all results for this configuration for this reference class
                 # Averaging each anchor point
@@ -136,21 +142,27 @@ if __name__ == "__main__":
                         precisions[_class][anchor] = torch.mean(precisions[_class][anchor])
                         recalls[_class][anchor] = torch.mean(recalls[_class][anchor])
                 
-                # One heatmap per base class
+                # One heatmap per metric per base class
                 for _class in classes:
-                    # Preparing heatmap (shifting to numpy)
-                    dimensions = sqrt(len(all_anchors))
+                    # Preparing heatmaps (shifting to numpy)
                     recall_heatmap = np.zeros(image_dimensions)
-                    # Assembling heatmap
+                    precision_heatmap = np.zeros(image_dimensions)
+                    # Assembling heatmaps
                     for anchor in all_anchors:
                         other_end = tuple(map(sum, zip(anchor,element_shape)))
                         coordinates_set = tuple(np.s_[origin:end] for origin, end in zip(anchor, other_end))
                         recall_heatmap[coordinates_set] = recalls[_class][anchor].item()
+                        precision_heatmap[coordinates_set] = precisions[_class][anchor].item()
 
-                    # Preparing image
+                    # Preparing images
                     plt.imshow(recall_heatmap, vmin=0, vmax=1)
-                    plt.title("Effects of reference {} on class {}".format(reference_class, _class))
+                    plt.title("Effects of reference {} on class {} recall".format(reference_class, _class))
                     mkdir("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/dataset_{}/{}".format(dataset_size, experimental_config["label"]))
-                    plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/dataset_{}/{}/ref{}on{}.png".format(dataset_size, experimental_config["label"], reference_class, _class))
+                    plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/dataset_{}/{}/ref{}on{}_recall.png".format(dataset_size, experimental_config["label"], reference_class, _class))
+                    plt.clf()
+                    plt.imshow(precision_heatmap, vmin=0, vmax=1)
+                    plt.title("Effects of reference {} on class {} precision".format(reference_class, _class))
+                    mkdir("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/dataset_{}/{}".format(dataset_size, experimental_config["label"]))
+                    plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/dataset_{}/{}/ref{}on{}_precision.png".format(dataset_size, experimental_config["label"], reference_class, _class))
                     plt.clf()
 
