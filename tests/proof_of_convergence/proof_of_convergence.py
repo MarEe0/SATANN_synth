@@ -23,7 +23,7 @@ def label_to_name(label):
 if __name__ == "__main__":
     base_path = "/media/mriva/LaCie/SATANN/synthetic_fine_segmentation_results/results_seg"
     # Iterating over each dataset size
-    for dataset_size in [20,50,100,200,400]:
+    for dataset_size in [1000]:
         base_dataset_path = os.path.join(base_path, "dataset_{}".format(dataset_size))
 
         test_set_size = 100
@@ -117,6 +117,22 @@ if __name__ == "__main__":
                         recalls[_class] = class_recalls
                     else:
                         recalls[_class] = torch.cat([recalls[_class], class_recalls], dim=0)
+                
+                # Printing partial results
+                model_label = os.path.split(initialization_path)[-1]
+                print("D={}, {}, precision: ".format(dataset_size, model_label),end="")
+                for _class in range(1, num_classes+1):
+                    class_precisions = precision(outputs_argmax, truths, _class)
+                    print("C{} {:.3f} +- {:.3f}\t".format(_class, torch.mean(class_precisions).item(), torch.std(class_precisions).item()), end="")
+                print("")
+                print("D={}, {}, recall:    ".format(dataset_size, model_label),end="")
+                for _class in range(1, num_classes+1):
+                    class_recalls = recall(outputs_argmax, truths, _class)
+                    print("C{} {:.3f} +- {:.3f}\t".format(_class, torch.mean(class_recalls).item(), torch.std(class_recalls).item()),end="")
+                print("\n")
+
+
+            print("")
                 
             # Printing results (latex format)
             # D | Config. | Precision1 | Recall1 | Precision2 | Recall2 | ...
