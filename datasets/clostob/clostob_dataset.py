@@ -8,6 +8,7 @@ Authors
 #%%
 import os
 import numpy as np
+import sys
 from torch.utils.data import Dataset
 from skimage.transform import rescale
 
@@ -41,7 +42,7 @@ def load_dataset(base_dataset_name):
 def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list, fg_positions: list,
                    position_translation: float, position_noise: float, rescale_classes: list, 
                    rescale_range: tuple, occlusion_classes: list, occlusion_range: tuple, 
-                   bg_classes: list, bg_amount: float, fine_segment: bool, flattened: bool):
+                   bg_classes: list, bg_amount: float, bg_bbox: tuple, fine_segment: bool, flattened: bool):
     """Generates a single CloStOb image and corresponding label map and bounding boxes.
 
     :param seed: Random number generator seed for this image.
@@ -58,6 +59,7 @@ def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list
     :param occlusion_ranges: min and max size of occlusion square.
     :param bg_classes: list of class labels to be added to the background.
     :param bg_amount: number (or range of numbers) of random images to draw on the background
+    :param bg_bbox: normalised limit coordinates for the bg images, as (x_min,y_min,x_max,y_max)
     :param fine_segment: If True, labelmaps are cut to the positive part of images.
     :param flattened: If True, return images as flattened 1D arrays. Else, return images shaped like `size`.
     :return: a tuple (image, labelmap) containing the image and corresponding labelmap.
@@ -75,6 +77,9 @@ def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list
     base_shape = base_dataset[bg_classes[0]][0].shape
     # Initialising limits on coordinates to avoid images "leaking out the border"
     coordinates_limit = tuple(np.array(image_dimensions) - base_shape)
+    # Binding the coordinate limits to the bg_bbox
+    bg_coordinates_limit = (max(0, bg_bbox[0]*image_dimensions[0]), max(0, bg_bbox[1]*image_dimensions[1]),
+                            min(coordinates_limit[0], bg_bbox[2]*image_dimensions[0]), min(coordinates_limit[1], bg_bbox[3]*image_dimensions[1]))
 
     # Preparing list of potential background elements
     bg_chosen_classes = rng.choice(bg_classes, bg_amount, replace=True)
@@ -82,7 +87,7 @@ def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list
     # Distributing background images
     for idx, bg_element in enumerate(bg_elements):
         # Choosing random coordinates
-        bg_origin_coords = rng.integers(np.zeros_like(image_dimensions), coordinates_limit)
+        bg_origin_coords = rng.integers(low=bg_coordinates_limit[:2], high=bg_coordinates_limit[2:], size=len(image_dimensions))
         bg_element_coords = tuple(
             np.s_[origin:end] for origin, end in zip(bg_origin_coords, bg_origin_coords + base_shape))
         # Adding bg element
@@ -145,7 +150,7 @@ def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list
 
 class CloStObDataset(Dataset):
     def __init__(self, base_dataset_name: str, image_dimensions: tuple, size: int, fg_classes: list, fg_positions: list,
-                 bg_classes: list, bg_amount: float, position_translation: float = 0.0, position_noise: float = 0.0,
+                 bg_classes: list, bg_amount: float, bg_bboxes: tuple = None, position_translation: float = 0.0, position_noise: float = 0.0,
                  rescale_classes: list = [], rescale_range: tuple = (1,1), occlusion_classes: list = [], occlusion_range: tuple = (0,0),
                  fine_segment: bool = False,
                  flattened: bool = False, lazy_load: bool = False, transform = None, target_transform = None, start_seed: int = 0):
@@ -164,6 +169,7 @@ class CloStObDataset(Dataset):
         :param occlusion_ranges: min and max size of occlusion square.
         :param bg_classes: list of class labels to be added to the background.
         :param bg_amount: number (or range of numbers) of random images to draw on the background.
+        :param bg_bbox: normalised limit coordinates for the bg images, as (x_min,y_min,x_max,y_max). If None, image_dimensions is used.
         :param fine_segment: If True, labelmaps are cut to the positive part of images.
         :param flattened: If True, return images as flattened 1D arrays. Else, return images shaped like `image_dimensions`. Default: False.
         :param lazy_load: If True, generate images on-the-fly. Else, generate and store all images in memory on initialization.
@@ -195,13 +201,17 @@ class CloStObDataset(Dataset):
         self.occlusion_range = occlusion_range
         self.bg_classes = bg_classes
         self.bg_amount = bg_amount
+        if bg_bboxes is None:
+            self.bg_bboxes=(0,0,*self.image_dimensions)
+        else:
+            self.bg_bboxes = bg_bboxes
         self.flattened = flattened
         self.fine_segment = fine_segment
         self.start_seed = 0
 
         # If preloading, generate a list of CloStOb images and apply transforms
         if not self.lazy_load:
-            self.samples = [self.apply_transforms(generate_image(i, self.base_dataset, self.image_dimensions, self.fg_classes, self.fg_positions, self.position_translation, self.position_noise, self.rescale_classes, self.rescale_range, self.occlusion_classes, self.occlusion_range, self.bg_classes, self.bg_amount, self.fine_segment, self.flattened)) for i in range(size)]
+            self.samples = [self.apply_transforms(generate_image(i, self.base_dataset, self.image_dimensions, self.fg_classes, self.fg_positions, self.position_translation, self.position_noise, self.rescale_classes, self.rescale_range, self.occlusion_classes, self.occlusion_range, self.bg_classes, self.bg_amount, self.bg_bboxes, self.fine_segment, self.flattened)) for i in range(size)]
 
         self.size = size
 
@@ -210,7 +220,7 @@ class CloStObDataset(Dataset):
         if not self.lazy_load:
             sample = self.samples[idx]
         else:
-            sample = generate_image(idx, self.base_dataset, self.image_dimensions, self.fg_classes, self.fg_positions, self.position_translation, self.position_noise, self.rescale_classes, self.rescale_range, self.occlusion_classes, self.occlusion_range, self.bg_classes, self.bg_amount, self.fine_segment, self.flattened)
+            sample = generate_image(idx, self.base_dataset, self.image_dimensions, self.fg_classes, self.fg_positions, self.position_translation, self.position_noise, self.rescale_classes, self.rescale_range, self.occlusion_classes, self.occlusion_range, self.bg_classes, self.bg_amount, self.bg_bboxes, self.fine_segment, self.flattened)
             sample = self.apply_transforms(sample)
         return sample
 
@@ -253,47 +263,84 @@ class CloStObDataset(Dataset):
 
 #%%
 if __name__ == '__main__':
-    clostob = CloStObDataset(base_dataset_name="fashion",
-                             image_dimensions=(200, 200),
-                             size=100,
-                             fg_classes=[0, 1],
-                             fg_positions=[(0.5, 0.25), (0.5, 0.75)],
-                             #rescale_classes=[0],
-                             #rescale_range=(2.0,2.0),
-                             #occlusion_classes=[0],
-                             #occlusion_range = [5,15],
-                             bg_classes=[5, 7],
-                             bg_amount=3,
-                             position_translation=0.2,
-                             position_noise=0.1,
-                             fine_segment=True,
-                             flattened=False)
+    test_set_size = 20
+    element_shape = (28,28)
+    stride = 28
+
+    # Preparing the foreground
+    fg_label = "T"
+    fg_classes = [0, 1, 8]
+    base_fg_positions = [(0.65, 0.25), (0.65, 0.65), (0.35, 0.65)]
+    position_translation=0.25
+    position_noise=0
+
+    num_classes = len(fg_classes)
+    classes = range(1,num_classes+1)
+
+    # Also setting the image dimensions in advance
+    image_dimensions = [256, 256]
+    
+
+    # Preparing dataset transforms:
+    
+    sys.path.append("/home/mriva/Recherche/PhD/SATANN/SATANN_synth")
+    import torchvision as tv
+    from utils import targetToTensor
+    transform = tv.transforms.Compose(                                  # For the images:
+        [tv.transforms.ToTensor(),                                      # Convert to torch.Tensor CxHxW type
+        tv.transforms.Normalize((255/2,), (255/2,), inplace=True)])    # Normalize from [0,255] to [-1,1] range
+    target_transform = tv.transforms.Compose(                           # For the labelmaps:
+        [targetToTensor()])                                             # Convert to torch.Tensor type
+    test_dataset = CloStObDataset(base_dataset_name="fashion",
+                                            image_dimensions=image_dimensions,
+                                            size=test_set_size,
+                                            fg_classes=fg_classes,
+                                            fg_positions=base_fg_positions,
+                                            position_translation=position_translation,
+                                            position_noise=position_noise,
+                                            bg_classes=[0], # Background class from config
+                                            bg_amount=3,
+                                            bg_bboxes=(0.4, 0.0, 0.9, 0.5),
+                                            flattened=False,
+                                            lazy_load=False,
+                                            fine_segment=True,
+                                            transform=transform,
+                                            target_transform=target_transform,
+                                            start_seed=100000)
 
     import matplotlib.pyplot as plt
     import matplotlib.patches as patches
+    from skimage.segmentation import mark_boundaries
 
-    shifts, anchors = clostob.generate_reference_shifts(0, 1, 32)
-    print(len(shifts))
-    for shift in shifts:
-        plt.subplot(121)
-        plt.imshow(shift["image"], cmap="gray")
-        plt.subplot(122)
-        plt.imshow(shift["labelmap"])
-        plt.show()
+    #shifts, anchors = test_dataset.generate_reference_shifts(11, 0, 32)
+    #print(len(shifts))
+    #for i, shift in enumerate([shifts[0], shifts[1], shifts[42]]):
+    #    plt.subplot(121)
+    #    plt.title("Input")
+    #    plt.imshow(shift["image"][0], cmap="gray")
+    #    plt.subplot(122)
+    #    plt.title("GT")
+    #    plt.imshow(shift["labelmap"])
+    #    plt.savefig("./work{}.png".format(i+10))
+    #    plt.clf()
 
-    for i in range(3):
-        plt.subplot(131)
-        plt.imshow(clostob[i]["image"], cmap="gray")
-        plt.subplot(132)
-        plt.imshow(clostob[i]["labelmap"])
-        #for bbox in clostob[i]["bboxes"]:
+    for i in range(14):
+        #plt.subplot(131)
+        image = (test_dataset[i]["image"][0] + 1.0)/2.0
+        labelmap = test_dataset[i]["labelmap"]
+        image = mark_boundaries(image, labelmap, color=(1,0,1), mode="thick", background_label=0)
+        plt.tight_layout()
+        plt.imshow(image, cmap="gray")
+        plt.savefig("./work{}.png".format(i))
+        #plt.subplot(132)
+        #plt.imshow(test_dataset[i]["labelmap"])
+        #for bbox in test_dataset[i]["bboxes"]:
         #    bbox = bbox*200
         #    plt.scatter([bbox[1]],[bbox[0]])
         #    rect = patches.Rectangle((bbox[:2][::-1] - np.floor_divide(*bbox[2:])), bbox[2], bbox[3])
         #    plt.gca().add_patch(rect)
-        plt.subplot(133)
-        plt.imshow(clostob[i]["bg_labelmap"])
-        plt.show()
-        print(clostob[i]["bboxes"])
+        #plt.subplot(133)
+        #plt.imshow(test_dataset[i]["bg_labelmap"])
+        #print(test_dataset[i]["bboxes"])
 
 # %%
