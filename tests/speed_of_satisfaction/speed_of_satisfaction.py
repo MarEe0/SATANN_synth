@@ -43,9 +43,9 @@ def get_val_rel_losses_dice(path_base, experiment_label):
 
 
 if __name__ == "__main__":
-    for dataset_size in [20,50,100,200,400]:
+    for dataset_size in [10000]:
         path_base = "/media/mriva/LaCie/SATANN/synthetic_fine_segmentation_results/results_seg/dataset_{}".format(dataset_size)
-        experiment_labels = ["T_easy_noise", "T_hard_noise", "T_veryhard_noise"]
+        experiment_labels = ["T_hard_noise"]#, "T_veryhard_noise"]
         model_seeds = range(5)
         dataset_seeds = range(5)
         #alphas = [0, 0.5]

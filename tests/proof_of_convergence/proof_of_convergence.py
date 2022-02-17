@@ -23,7 +23,7 @@ def label_to_name(label):
 if __name__ == "__main__":
     base_path = "/media/mriva/LaCie/SATANN/synthetic_fine_segmentation_results/results_seg"
     # Iterating over each dataset size
-    for dataset_size in [1000]:
+    for dataset_size in [10000]:
         base_dataset_path = os.path.join(base_path, "dataset_{}".format(dataset_size))
 
         test_set_size = 100
