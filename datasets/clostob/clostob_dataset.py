@@ -256,7 +256,7 @@ class CloStObDataset(Dataset):
                 x_anchor, y_anchor = x_anchor_base/self.image_dimensions[0], y_anchor_base/self.image_dimensions[1]
                 shifted_fg_positions[idx_to_shift] = (x_anchor + normed_element_shape[0], y_anchor + normed_element_shape[1])
 
-                sample = generate_image(idx, self.base_dataset, self.image_dimensions, self.fg_classes, shifted_fg_positions, 0, 0, self.rescale_classes, self.rescale_range, self.occlusion_classes, self.occlusion_range, self.bg_classes, self.bg_amount, self.fine_segment, self.flattened)
+                sample = generate_image(idx, self.base_dataset, self.image_dimensions, self.fg_classes, shifted_fg_positions, 0, 0, self.rescale_classes, self.rescale_range, self.occlusion_classes, self.occlusion_range, self.bg_classes, self.bg_amount, self.bg_bboxes, self.fine_segment, self.flattened)
                 sample = self.apply_transforms(sample)
                 set_of_shifts.append(sample)
         return set_of_shifts, set_of_anchors
