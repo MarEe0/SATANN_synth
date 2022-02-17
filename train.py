@@ -196,7 +196,7 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, ta
 
             # Compute relational scores
             if "dice" in metrics or "cc" in metrics:
-                outputs_relational_scores = relational_criterion.compute_metric(outputs_softmax)
+                outputs_relational_scores = relational_criterion.compute_metric(outputs_softmax, all_val_targets)
             else:
                 outputs_relational_scores = relational_criterion.compute_metric(all_val_outputs)
 

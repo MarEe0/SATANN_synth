@@ -12,6 +12,11 @@ class targetToTensor:  # Simple tensor conversion (because tv.ToTensor normalize
     def __repr__(self):
         return self.__class__.__name__ + "()"
 
+def multi_logical_or(tensors):
+    if len(tensors) <= 1:
+        return tensors[0]
+    return torch.logical_or(tensors[0], multi_logical_or(tensors[1:]))
+
 def tensor_to_numpy(tensor):
     return tensor.cpu().detach().numpy()
 

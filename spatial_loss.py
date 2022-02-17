@@ -63,12 +63,14 @@ def get_coordinates_map(image_dimensions):
     return coordinates_map
 
 class SpatialPriorErrorSegmentation(SpatialPriorError):
-    def __init__(self, relations, image_dimensions=None, num_classes=None):
+    def __init__(self, relations, image_dimensions=None, num_classes=None, crit_classes=None):
         """Spatial prior loss for segmentation tasks.
 
         Args:
             relations (list): List of spatial relationships in the format `(source, target, dy, dx)`
             image_dimensions (tuple or None): shape of input images. If None, computed on-the-fly.
+            crit_classes (list): classes being used in the criterion. If len(crit_classes) < num_classes,
+                the complementary classes will be taken from the ground truth. Only used for metrics.
         """
         super(SpatialPriorErrorSegmentation, self).__init__(relations)
 
@@ -83,6 +85,10 @@ class SpatialPriorErrorSegmentation(SpatialPriorError):
             self.threshold = nn.Threshold(1.0/num_classes, 0)
         else:
             self.threshold = None
+        
+        self.crit_classes = crit_classes
+        if crit_classes is not None:
+            self.uncrit_classes = [x for x in range(num_classes+1) if x not in crit_classes]
 
     def compute_centroids(self, output):
         # Computing centroids
@@ -119,9 +125,18 @@ class SpatialPriorErrorSegmentation(SpatialPriorError):
         error = dy_all.sum() + dx_all.sum()
         return error
     
-    def compute_metric(self, output):
+    def compute_metric(self, output, truths):
         """Like forward, but it return the value per object"""
-        centroids_y, centroids_x = self.compute_centroids(output)
+        if self.crit_classes is not None:
+            full_output = torch.empty((output.shape[0], max(max(self.crit_classes), max(self.uncrit_classes))+1, *output.shape[2:]), device=output.device)
+            for i, crit_class in enumerate(self.crit_classes):
+                full_output[:,crit_class] = output[:,i]
+            for i, uncrit_class in enumerate(self.uncrit_classes):
+                full_output[:,uncrit_class] = (truths==uncrit_class).double()
+        else:
+            full_output = output
+
+        centroids_y, centroids_x = self.compute_centroids(full_output)
         dy_all, dx_all = self.compute_errors(centroids_y, centroids_x)  
 
         # Aggregating the errors **over the relations only**
