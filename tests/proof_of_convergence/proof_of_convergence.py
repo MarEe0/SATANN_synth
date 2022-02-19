@@ -21,9 +21,9 @@ def label_to_name(label):
         return "{}-Easy".format(label[0].upper())
 
 if __name__ == "__main__":
-    base_path = "/media/mriva/LaCie/SATANN/synthetic_fine_segmentation_results/results_seg"
+    base_path = "/media/mriva/LaCie/SATANN/synthetic_fine_segmentation_results/results_strict"
     # Iterating over each dataset size
-    for dataset_size in [10000]:
+    for dataset_size in [100,1000,5000]:
         base_dataset_path = os.path.join(base_path, "dataset_{}".format(dataset_size))
 
         test_set_size = 100
@@ -50,9 +50,9 @@ if __name__ == "__main__":
             [targetToTensor()])                                             # Convert to torch.Tensor type
 
         # Experiment configurations
-        experimental_configs = [{"label": fg_label + "_easy_noise", "bg_classes": [7], "bg_amount": 3},
-                                {"label": fg_label + "_hard_noise", "bg_classes": [0], "bg_amount": 3},
-                                {"label": fg_label + "_veryhard_noise", "bg_classes": [0,1,8], "bg_amount": 6}]
+        experimental_configs = [{"label": fg_label + "_hard_noise", "bg_classes": [0], "bg_amount": 3}]
+        #                        {"label": fg_label + "_easy_noise", "bg_classes": [7], "bg_amount": 3},
+        #                        {"label": fg_label + "_veryhard_noise", "bg_classes": [0,1,8], "bg_amount": 6}]
         
         # Getting results for a specific experiment configuration
         for experimental_config in experimental_configs:
@@ -119,6 +119,7 @@ if __name__ == "__main__":
                         recalls[_class] = torch.cat([recalls[_class], class_recalls], dim=0)
                 
                 # Printing partial results
+                continue
                 model_label = os.path.split(initialization_path)[-1]
                 print("D={}, {}, precision: ".format(dataset_size, model_label),end="")
                 for _class in range(1, num_classes+1):
