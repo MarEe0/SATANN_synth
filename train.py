@@ -147,8 +147,8 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, ta
                     
                     # Store validation predictions for epoch accuracy
                     if phase == "val":
-                        val_outputs.append(outputs)
-                        val_targets.append(targets)
+                        val_outputs.append(outputs.cpu())
+                        val_targets.append(targets.cpu())
         
         # Epoch is done, save checkpoint
         torch.save(model.state_dict(), os.path.join(model_training_path, "last_model.pth"))
@@ -162,9 +162,9 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, ta
 
         # Epoch is done, compute validation metrics
         with torch.no_grad():
-            all_val_outputs = torch.cat(val_outputs, dim=0).to(device)  # Concatenate all outputs alongside the item dimension
+            all_val_outputs = torch.cat(val_outputs, dim=0).to("cpu")  # Concatenate all outputs alongside the item dimension
             all_val_images = torch.cat([item_pair["image"] for item_pair in data_loaders["val"]], dim=0)
-            all_val_targets = torch.cat(val_targets, dim=0).to(device)
+            all_val_targets = torch.cat(val_targets, dim=0).to("cpu")
             num_classes = all_val_outputs.shape[1]  # Get number of classes
 
             if "dice" in metrics or "cc" in metrics:
