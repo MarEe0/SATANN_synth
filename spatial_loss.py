@@ -51,7 +51,7 @@ class SpatialPriorError(nn.Module):
         return dy_all, dx_all
 
 
-def get_coordinates_map(image_dimensions):
+def get_coordinates_map(image_dimensions, device="cpu"):
     if len(image_dimensions) == 2:  # 2-dimensional input (h x w)
         h, w = image_dimensions
     elif len(image_dimensions) == 4:  # 2-dimensional batch input (n x c x h x w)
@@ -59,11 +59,11 @@ def get_coordinates_map(image_dimensions):
     else:
         raise ValueError("Image dimensions has shape {}, only 2 and 4 are accepted".format(image_dimensions.shape))
     coordinates_map = torch.meshgrid([torch.arange(h), torch.arange(w)], indexing="ij")
-    coordinates_map = (coordinates_map[0].to(torch.device("cuda"))/h, coordinates_map[1].to(torch.device("cuda"))/w)  # normalizing
+    coordinates_map = (coordinates_map[0].to(torch.device(device))/h, coordinates_map[1].to(torch.device(device))/w)  # normalizing
     return coordinates_map
 
 class SpatialPriorErrorSegmentation(SpatialPriorError):
-    def __init__(self, relations, image_dimensions=None, num_classes=None, crit_classes=None):
+    def __init__(self, relations, image_dimensions=None, num_classes=None, crit_classes=None, device="cpu"):
         """Spatial prior loss for segmentation tasks.
 
         Args:
@@ -76,7 +76,7 @@ class SpatialPriorErrorSegmentation(SpatialPriorError):
 
         if image_dimensions is not None:
             self.image_dimensions = image_dimensions
-            self.coordinates_map = get_coordinates_map(image_dimensions)
+            self.coordinates_map = get_coordinates_map(image_dimensions, device)
         else:
             self.image_dimensions = None
             self.coordinates_map = None
@@ -93,7 +93,11 @@ class SpatialPriorErrorSegmentation(SpatialPriorError):
     def compute_centroids(self, output):
         # Computing centroids
         if self.image_dimensions is None:  # Initializing coordinates_map on-the-fly
-            self.coordinates_map = get_coordinates_map(output.size())
+            self.coordinates_map = get_coordinates_map(output.size(), output.device)
+
+        # Sanity checking device
+        if self.coordinates_map[0].device != output.device:
+            self.coordinates_map = get_coordinates_map(output.size(), output.device)
 
         coords_y, coords_x = self.coordinates_map  # Getting coordinates map
 
