@@ -40,7 +40,7 @@ class limitedCrossEntropyLoss(torch.nn.CrossEntropyLoss):
                              label_smoothing=self.label_smoothing)
 
 
-def run_experiment(model_seed, dataset_split_seed, dataset, test_dataset, relational_criterion, alpha, crit_classes=None, deterministic=False, experiment_label=None):
+def run_experiment(model_seed, dataset_split_seed, dataset, test_dataset, relational_criterion, alpha, crit_classes=None, deterministic=False, max_val_set_size=3000, experiment_label=None):
     results_path = "results/results_strict"
 
     # Default training label: timestamp of start of training
@@ -72,7 +72,12 @@ def run_experiment(model_seed, dataset_split_seed, dataset, test_dataset, relati
     # Initializing data loaders
     # Splitting dataset into train, val and test subsets
     dataset_size = len(dataset)
-    train_set, val_set, _ = random_split(dataset, ((dataset_size*7)//10, (dataset_size*3)//10, 0), generator=dataset_split_rng)
+    # Limiting validation set size
+    train_set_size, val_set_size = (dataset_size*7)//10, (dataset_size*3)//10
+    if val_set_size > max_val_set_size:
+        val_set_size = max_val_set_size
+    test_set_size = dataset_size - (train_set_size + val_set_size)  # to discard
+    train_set, val_set, _ = random_split(dataset, (train_set_size, val_set_size, test_set_size), generator=dataset_split_rng)
     test_set = test_dataset
     # Preparing dataloaders
     data_loaders = {"train": DataLoader(train_set, batch_size=batch_size, num_workers=2),
@@ -123,7 +128,7 @@ def run_experiment(model_seed, dataset_split_seed, dataset, test_dataset, relati
         outputs_dices = [dice_score(outputs_argmax, truths, _class) for _class in range(num_classes)]
 
         # Compute relational scores
-        outputs_relational_scores = relational_criterion.compute_metric(outputs_softmax)
+        outputs_relational_scores = relational_criterion.compute_metric(outputs_softmax, truths)
 
         # Compute connected components per class
         outputs_connected_components = [count_connected_components(outputs_argmax, _class) for _class in range(num_classes)]
@@ -174,7 +179,7 @@ from collections import deque
 if __name__ == "__main__":
     # Testing experiments
     #dataset_size = 400
-    for dataset_size in [500,1000]:
+    for dataset_size in [50000]:
         test_set_size = 30
 
         # Preparing the foreground
@@ -236,7 +241,7 @@ if __name__ == "__main__":
                                                     bg_bboxes=(0.4, 0.0, 0.9, 0.5),
                                                     fine_segment=True,
                                                     flattened=False,
-                                                    lazy_load=False,
+                                                    lazy_load=True,
                                                     transform=transform,
                                                     target_transform=target_transform)
                         
