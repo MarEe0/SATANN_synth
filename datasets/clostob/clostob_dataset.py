@@ -72,7 +72,7 @@ def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list
     # Creating empty bounding boxes list - one (x,y,w,h) tuple for each fg_class
     bboxes = np.zeros((len(fg_classes), 4))
     # Creating background labelmap
-    bg_labelmap = np.zeros(image_dimensions, dtype=int)
+    bg_labelmap = np.ones(image_dimensions, dtype=int)*-1
     # Getting shape of base dataset images
     base_shape = base_dataset[bg_classes[0]][0].shape
     # Initialising limits on coordinates to avoid images "leaking out the border"
@@ -298,7 +298,7 @@ if __name__ == '__main__':
                                             fg_positions=base_fg_positions,
                                             position_translation=0.25,
                                             position_noise=0.1,
-                                            bg_classes=[7], # Background class from config
+                                            bg_classes=[0], # Background class from config
                                             bg_amount=3,
                                             #bg_bboxes=(0.4, 0.0, 0.9, 0.5),
                                             flattened=False,
@@ -329,13 +329,12 @@ if __name__ == '__main__':
         image = (test_dataset[i]["image"][0] + 1.0)/2.0
         labelmap = test_dataset[i]["labelmap"]
         for label, color in zip(range(1,4), [plt.get_cmap("tab10")(1)[:3], plt.get_cmap("tab10")(2)[:3], plt.get_cmap("tab10")(3)[:3]]):
-            if label > 1: continue
             image = mark_boundaries(image, labelmap==label, color=color, mode="thick", background_label=0)
         plt.tight_layout()
         plt.axis("off")
         plt.imshow(image, cmap="gray")
-        plt.savefig("./easy{}.eps".format(i), bbox_inches='tight')
-        plt.savefig("./easy{}.png".format(i), bbox_inches='tight')
+        plt.savefig("./hard{}.eps".format(i), bbox_inches='tight')
+        plt.savefig("./hard{}.png".format(i), bbox_inches='tight')
         #plt.subplot(132)
         #plt.imshow(test_dataset[i]["labelmap"])
         #for bbox in test_dataset[i]["bboxes"]:
