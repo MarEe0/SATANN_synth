@@ -18,35 +18,40 @@ from metrics import precision, recall
 from utils import targetToTensor, mkdir
 
 def label_to_name(label):
-    if "veryhard" in label:
-        return "{}-V.H.".format(label[0].upper())
-    if "hard" in label:
-        return "{}-Hard".format(label[0].upper())
-    if "easy" in label:
-        return "{}-Easy".format(label[0].upper())
+    if "strict" in label:
+        return "{}-Strict".format(label[0].upper())
 
 if __name__ == "__main__":
-    base_path = "/media/mriva/LaCie/SATANN/synthetic_fine_segmentation_results/results_seg"
+    base_path = "/media/mriva/LaCie/SATANN/synthetic_fine_segmentation_results/results_strict"
+    dataset_sizes = [1000,5000,10000,50000]
+    # Acquire these from the proof_of_convergence
+    # Format: list of size D, containing list of size labels
+    convergence_lists = [[[False, False, False, True, False, True, False, True, False, False, True, False, False, True, True, False, False, False, False, False, True, False, False, False, True]],
+                         [[False, False, True, True, True, True, True, True, False, True, False, False, True, True, False, True, True, True, False, False, False, True, True, False, False]],
+                         [[True, False, True, False, False, True, True, False, False, True, True, True, True, True, True, False, False, True, True, True, True, False, True, True, True]]]
+    
     # Iterating over each dataset size
-    for dataset_size in [1000]:
+    for dataset_size, convergence_list in zip(dataset_sizes, convergence_lists):
         base_dataset_path = os.path.join(base_path, "dataset_{}".format(dataset_size))
 
-        test_set_size = 10
+        test_set_size = 20
         element_shape = (28,28)
-        stride = 28
+        stride = 20
 
         # Preparing the foreground
         fg_label = "T"
         fg_classes = [0, 1, 8]
-        base_fg_positions = [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)]
-        position_translation=0.2
-        position_noise=0.1
+        base_fg_positions = [(0.65, 0.25), (0.65, 0.65), (0.35, 0.65)]
+        position_translation=0.0
+        position_noise=0.0
+        bg_bboxes = (0.4, 0.0, 0.9, 0.5)
 
         num_classes = len(fg_classes)
         classes = range(1,num_classes+1)
+        crit_classes =[1]
 
         # Also setting the image dimensions in advance
-        image_dimensions = [256, 256]
+        image_dimensions = [160, 160]
         
 
         # Preparing dataset transforms:
@@ -57,12 +62,13 @@ if __name__ == "__main__":
             [targetToTensor()])                                             # Convert to torch.Tensor type
 
         # Experiment configurations
-        experimental_configs = [{"label": fg_label + "_hard_noise", "bg_classes": [0], "bg_amount": 3},
-                                {"label": fg_label + "_easy_noise", "bg_classes": [7], "bg_amount": 3},
-                                {"label": fg_label + "_veryhard_noise", "bg_classes": [0,1,8], "bg_amount": 6}]
+        experimental_configs =  [{"label": fg_label + "_strict_noise", "bg_classes": [0], "bg_amount": 3}]
+                                #[{"label": fg_label + "_hard_noise", "bg_classes": [0], "bg_amount": 3}]#,
+                                #{"label": fg_label + "_easy_noise", "bg_classes": [7], "bg_amount": 3},
+                                #{"label": fg_label + "_veryhard_noise", "bg_classes": [0,1,8], "bg_amount": 6}]
         
         # Getting results for a specific experiment configuration
-        for experimental_config in experimental_configs:
+        for experimental_config, config_convergence in zip(experimental_configs, convergence_list):
             # Preparing the test set
             test_dataset = CloStObDataset(base_dataset_name="fashion",
                                             image_dimensions=image_dimensions,
@@ -73,6 +79,7 @@ if __name__ == "__main__":
                                             position_noise=position_noise,
                                             bg_classes=experimental_config["bg_classes"], # Background class from config
                                             bg_amount=experimental_config["bg_amount"],
+                                            bg_bboxes=bg_bboxes,
                                             flattened=False,
                                             lazy_load=False,
                                             fine_segment=True,
@@ -80,7 +87,7 @@ if __name__ == "__main__":
                                             target_transform=target_transform,
                                             start_seed=100000)
             # Getting results for each reference class shift
-            for reference_class in classes:
+            for reference_class in [int(sys.argv[1])]:
                 # Note: CSO functions take "which" class, like '0' for shirt or '8' for bag
                 # While this test takes 1,2,3, hence the need for conversion
                 converted_class = fg_classes[reference_class-1]
@@ -90,16 +97,19 @@ if __name__ == "__main__":
                 all_anchors = anchors_set[:(len(anchors_set)//test_set_size)]
 
                 # REFERENCE POSITION:
-                #   Getting test-time precision and recall per class, per anchor for all inits
-                initialization_paths = list(glob(os.path.join(base_dataset_path, experimental_config["label"] + "*")))
-                initialization_paths = [item for item in initialization_paths if item[-2:] != ".5"] # skipping SATANN examples (where alpha > 0)
-                precisions = {_class : {anchor: torch.zeros(test_set_size*len(initialization_paths)) for anchor in all_anchors} for _class in classes}
-                recalls = {_class : {anchor: torch.zeros(test_set_size*len(initialization_paths)) for anchor in all_anchors} for _class in classes}
+                #   Getting test-time precision and recall per class, per anchor for all converged inits
+                initialization_paths = sorted(list(glob(os.path.join(base_dataset_path, experimental_config["label"] + "*"))))
+                initialization_paths = [item for item in initialization_paths if item[-2:] != ".5"]  # skipping SATANN examples (where alpha > 0)
+                initialization_paths = [item for idx, item in enumerate(initialization_paths) if config_convergence[idx]]  # skipping non-converged models
+
+                precisions = {_class : {anchor: torch.zeros(test_set_size*len(initialization_paths)) for anchor in all_anchors} for _class in crit_classes}
+                recalls = {_class : {anchor: torch.zeros(test_set_size*len(initialization_paths)) for anchor in all_anchors} for _class in crit_classes}
+                
                 for init_idx, initialization_path in enumerate(initialization_paths):
                     print("Doing {}, ref {}, {}".format(dataset_size, reference_class, os.path.split(initialization_path)[-1]))
                     # Loading the specified model
                     model_path = os.path.join(initialization_path, "best_model.pth")
-                    model = UNet(input_channels=1, output_channels=4).to(device="cuda")
+                    model = UNet(input_channels=1, output_channels=len(crit_classes)+1).to(device="cuda")
                     model.load_state_dict(torch.load(model_path))
                     model.eval()
 
@@ -118,7 +128,7 @@ if __name__ == "__main__":
                     outputs_argmax = outputs_softmax.argmax(dim=1)  # Argmax outputs along class dimension
                 
                     # computing metrics for all classes
-                    for _class in classes:
+                    for _class in crit_classes:
                         class_precisions = precision(outputs_argmax, truths, _class)
                         class_recalls = recall(outputs_argmax, truths, _class)
 
@@ -137,32 +147,45 @@ if __name__ == "__main__":
 
                 # Got all results for this configuration for this reference class
                 # Averaging each anchor point
-                for _class in classes:
+                for _class in crit_classes:
                     for anchor in all_anchors:
                         precisions[_class][anchor] = torch.mean(precisions[_class][anchor])
                         recalls[_class][anchor] = torch.mean(recalls[_class][anchor])
                 
                 # One heatmap per metric per base class
-                for _class in classes:
+                for _class in crit_classes:
                     # Preparing heatmaps (shifting to numpy)
+                    recall_values_per_pixel = [[[] for _ in range(image_dimensions[1])] for _ in range(image_dimensions[0])]
+                    precision_values_per_pixel = [[[] for _ in range(image_dimensions[1])] for _ in range(image_dimensions[0])]
                     recall_heatmap = np.zeros(image_dimensions)
                     precision_heatmap = np.zeros(image_dimensions)
                     # Assembling heatmaps
                     for anchor in all_anchors:
                         other_end = tuple(map(sum, zip(anchor,element_shape)))
                         coordinates_set = tuple(np.s_[origin:end] for origin, end in zip(anchor, other_end))
-                        recall_heatmap[coordinates_set] = recalls[_class][anchor].item()
-                        precision_heatmap[coordinates_set] = precisions[_class][anchor].item()
+                        for i in range(anchor[0], other_end[0]):
+                            for j in range(anchor[1], other_end[1]):
+                                recall_values_per_pixel[i][j].append(recalls[_class][anchor].item())
+                                precision_values_per_pixel[i][j].append(precisions[_class][anchor].item())
+        
+                    for i in range(image_dimensions[0]):
+                        for j in range(image_dimensions[1]):
+                            recall_heatmap[i,j] = np.mean(recall_values_per_pixel[i][j])
+                            precision_heatmap[i,j] = np.mean(precision_values_per_pixel[i][j])
 
                     # Preparing images
                     plt.imshow(recall_heatmap, vmin=0, vmax=1)
-                    plt.title("Effects of reference {} on class {} recall".format(reference_class, _class))
-                    mkdir("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/dataset_{}/{}".format(dataset_size, experimental_config["label"]))
-                    plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/dataset_{}/{}/ref{}on{}_recall.png".format(dataset_size, experimental_config["label"], reference_class, _class))
+                    #plt.title("Effects of reference {} on class {} recall".format(reference_class, _class))
+                    mkdir("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_strict/dataset_{}/{}".format(dataset_size, experimental_config["label"]))
+                    plt.axis("off")
+                    plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_strict/dataset_{}/{}/ref{}on{}_recall.png".format(dataset_size, experimental_config["label"], reference_class, _class), bbox_inches="tight")
                     plt.clf()
+                    np.save("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_strict/dataset_{}/{}/ref{}on{}_recall.npy".format(dataset_size, experimental_config["label"], reference_class, _class), recall_heatmap)
                     plt.imshow(precision_heatmap, vmin=0, vmax=1)
-                    plt.title("Effects of reference {} on class {} precision".format(reference_class, _class))
-                    mkdir("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/dataset_{}/{}".format(dataset_size, experimental_config["label"]))
-                    plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/dataset_{}/{}/ref{}on{}_precision.png".format(dataset_size, experimental_config["label"], reference_class, _class))
+                    #plt.title("Effects of reference {} on class {} precision".format(reference_class, _class))
+                    mkdir("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_strict/dataset_{}/{}".format(dataset_size, experimental_config["label"]))
+                    plt.axis("off")
+                    plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_strict/dataset_{}/{}/ref{}on{}_precision.png".format(dataset_size, experimental_config["label"], reference_class, _class), bbox_inches="tight")
                     plt.clf()
+                    np.save("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_strict/dataset_{}/{}/ref{}on{}_precision.npy".format(dataset_size, experimental_config["label"], reference_class, _class), precision_heatmap)
 
