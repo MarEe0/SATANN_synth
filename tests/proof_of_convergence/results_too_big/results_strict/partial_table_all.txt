@@ -1,0 +1,231 @@
+D=1000, T_hard_noise_m0_d0_a0, precision: C1 0.278 +- 0.447
+D=1000, T_hard_noise_m0_d0_a0, recall:    C1 0.041 +- 0.091
+
+D=1000, T_hard_noise_m0_d1_a0, precision: C1 0.200 +- 0.401
+D=1000, T_hard_noise_m0_d1_a0, recall:    C1 0.096 +- 0.244
+
+D=1000, T_hard_noise_m0_d2_a0, precision: C1 0.193 +- 0.387
+D=1000, T_hard_noise_m0_d2_a0, recall:    C1 0.111 +- 0.278
+
+D=1000, T_hard_noise_m0_d3_a0, precision: C1 0.000 +- 0.000
+D=1000, T_hard_noise_m0_d3_a0, recall:    C1 0.000 +- 0.000
+
+D=1000, T_hard_noise_m0_d4_a0, precision: C1 0.275 +- 0.421
+D=1000, T_hard_noise_m0_d4_a0, recall:    C1 0.072 +- 0.127
+
+D=1000, T_hard_noise_m1_d0_a0, precision: C1 0.140 +- 0.348
+D=1000, T_hard_noise_m1_d0_a0, recall:    C1 0.016 +- 0.041
+
+D=1000, T_hard_noise_m1_d1_a0, precision: C1 0.000 +- 0.000
+D=1000, T_hard_noise_m1_d1_a0, recall:    C1 0.000 +- 0.000
+
+D=1000, T_hard_noise_m1_d2_a0, precision: C1 0.186 +- 0.386
+D=1000, T_hard_noise_m1_d2_a0, recall:    C1 0.122 +- 0.303
+
+D=1000, T_hard_noise_m1_d3_a0, precision: C1 0.228 +- 0.420
+D=1000, T_hard_noise_m1_d3_a0, recall:    C1 0.093 +- 0.249
+
+D=1000, T_hard_noise_m1_d4_a0, precision: C1 0.325 +- 0.448
+D=1000, T_hard_noise_m1_d4_a0, recall:    C1 0.077 +- 0.131
+
+D=1000, T_hard_noise_m2_d0_a0, precision: C1 0.296 +- 0.449
+D=1000, T_hard_noise_m2_d0_a0, recall:    C1 0.056 +- 0.109
+
+D=1000, T_hard_noise_m2_d1_a0, precision: C1 0.010 +- 0.100
+D=1000, T_hard_noise_m2_d1_a0, recall:    C1 0.000 +- 0.001
+
+D=1000, T_hard_noise_m2_d2_a0, precision: C1 0.278 +- 0.440
+D=1000, T_hard_noise_m2_d2_a0, recall:    C1 0.136 +- 0.310
+
+D=1000, T_hard_noise_m2_d3_a0, precision: C1 0.282 +- 0.434
+D=1000, T_hard_noise_m2_d3_a0, recall:    C1 0.177 +- 0.348
+
+D=1000, T_hard_noise_m2_d4_a0, precision: C1 0.310 +- 0.451
+D=1000, T_hard_noise_m2_d4_a0, recall:    C1 0.036 +- 0.071
+
+D=1000, T_hard_noise_m3_d0_a0, precision: C1 0.160 +- 0.368
+D=1000, T_hard_noise_m3_d0_a0, recall:    C1 0.105 +- 0.271
+
+D=1000, T_hard_noise_m3_d1_a0, precision: C1 0.000 +- 0.000
+D=1000, T_hard_noise_m3_d1_a0, recall:    C1 0.000 +- 0.000
+
+D=1000, T_hard_noise_m3_d2_a0, precision: C1 0.205 +- 0.392
+D=1000, T_hard_noise_m3_d2_a0, recall:    C1 0.121 +- 0.293
+
+D=1000, T_hard_noise_m3_d3_a0, precision: C1 0.316 +- 0.457
+D=1000, T_hard_noise_m3_d3_a0, recall:    C1 0.060 +- 0.116
+
+D=1000, T_hard_noise_m3_d4_a0, precision: C1 0.343 +- 0.453
+D=1000, T_hard_noise_m3_d4_a0, recall:    C1 0.141 +- 0.327
+
+D=1000, T_hard_noise_m4_d0_a0, precision: C1 0.149 +- 0.357
+D=1000, T_hard_noise_m4_d0_a0, recall:    C1 0.024 +- 0.062
+
+D=1000, T_hard_noise_m4_d1_a0, precision: C1 0.362 +- 0.464
+D=1000, T_hard_noise_m4_d1_a0, recall:    C1 0.062 +- 0.115
+
+D=1000, T_hard_noise_m4_d2_a0, precision: C1 0.136 +- 0.339
+D=1000, T_hard_noise_m4_d2_a0, recall:    C1 0.113 +- 0.300
+
+D=1000, T_hard_noise_m4_d3_a0, precision: C1 0.294 +- 0.448
+D=1000, T_hard_noise_m4_d3_a0, recall:    C1 0.028 +- 0.071
+
+D=1000, T_hard_noise_m4_d4_a0, precision: C1 0.136 +- 0.335
+D=1000, T_hard_noise_m4_d4_a0, recall:    C1 0.001 +- 0.002
+
+
+T-Strict & 1000 & $N/A$ & $N/A$ & 0/25\\
+D=5000, T_hard_noise_m0_d0_a0, precision: C1 0.538 +- 0.481
+D=5000, T_hard_noise_m0_d0_a0, recall:    C1 0.234 +- 0.376
+
+D=5000, T_hard_noise_m0_d1_a0, precision: C1 0.220 +- 0.416
+D=5000, T_hard_noise_m0_d1_a0, recall:    C1 0.130 +- 0.318
+
+D=5000, T_hard_noise_m0_d2_a0, precision: C1 0.513 +- 0.462
+D=5000, T_hard_noise_m0_d2_a0, recall:    C1 0.191 +- 0.334
+
+D=5000, T_hard_noise_m0_d3_a0, precision: C1 0.246 +- 0.411
+D=5000, T_hard_noise_m0_d3_a0, recall:    C1 0.003 +- 0.006
+
+D=5000, T_hard_noise_m0_d4_a0, precision: C1 0.301 +- 0.444
+D=5000, T_hard_noise_m0_d4_a0, recall:    C1 0.063 +- 0.120
+
+D=5000, T_hard_noise_m1_d0_a0, precision: C1 0.276 +- 0.446
+D=5000, T_hard_noise_m1_d0_a0, recall:    C1 0.101 +- 0.268
+
+D=5000, T_hard_noise_m1_d1_a0, precision: C1 0.365 +- 0.470
+D=5000, T_hard_noise_m1_d1_a0, recall:    C1 0.044 +- 0.079
+
+D=5000, T_hard_noise_m1_d2_a0, precision: C1 0.238 +- 0.423
+D=5000, T_hard_noise_m1_d2_a0, recall:    C1 0.127 +- 0.297
+
+D=5000, T_hard_noise_m1_d3_a0, precision: C1 0.473 +- 0.478
+D=5000, T_hard_noise_m1_d3_a0, recall:    C1 0.149 +- 0.331
+
+D=5000, T_hard_noise_m1_d4_a0, precision: C1 0.214 +- 0.407
+D=5000, T_hard_noise_m1_d4_a0, recall:    C1 0.111 +- 0.292
+
+D=5000, T_hard_noise_m2_d0_a0, precision: C1 0.578 +- 0.423
+D=5000, T_hard_noise_m2_d0_a0, recall:    C1 0.244 +- 0.333
+
+D=5000, T_hard_noise_m2_d1_a0, precision: C1 0.227 +- 0.400
+D=5000, T_hard_noise_m2_d1_a0, recall:    C1 0.003 +- 0.006
+
+D=5000, T_hard_noise_m2_d2_a0, precision: C1 0.203 +- 0.399
+D=5000, T_hard_noise_m2_d2_a0, recall:    C1 0.111 +- 0.291
+
+D=5000, T_hard_noise_m2_d3_a0, precision: C1 0.170 +- 0.377
+D=5000, T_hard_noise_m2_d3_a0, recall:    C1 0.042 +- 0.109
+
+D=5000, T_hard_noise_m2_d4_a0, precision: C1 0.384 +- 0.468
+D=5000, T_hard_noise_m2_d4_a0, recall:    C1 0.077 +- 0.145
+
+D=5000, T_hard_noise_m3_d0_a0, precision: C1 0.398 +- 0.480
+D=5000, T_hard_noise_m3_d0_a0, recall:    C1 0.184 +- 0.330
+
+D=5000, T_hard_noise_m3_d1_a0, precision: C1 0.324 +- 0.463
+D=5000, T_hard_noise_m3_d1_a0, recall:    C1 0.135 +- 0.321
+
+D=5000, T_hard_noise_m3_d2_a0, precision: C1 0.413 +- 0.472
+D=5000, T_hard_noise_m3_d2_a0, recall:    C1 0.188 +- 0.353
+
+D=5000, T_hard_noise_m3_d3_a0, precision: C1 0.325 +- 0.460
+D=5000, T_hard_noise_m3_d3_a0, recall:    C1 0.099 +- 0.252
+
+D=5000, T_hard_noise_m3_d4_a0, precision: C1 0.486 +- 0.488
+D=5000, T_hard_noise_m3_d4_a0, recall:    C1 0.154 +- 0.317
+
+D=5000, T_hard_noise_m4_d0_a0, precision: C1 0.195 +- 0.386
+D=5000, T_hard_noise_m4_d0_a0, recall:    C1 0.002 +- 0.005
+
+D=5000, T_hard_noise_m4_d1_a0, precision: C1 0.503 +- 0.476
+D=5000, T_hard_noise_m4_d1_a0, recall:    C1 0.275 +- 0.407
+
+D=5000, T_hard_noise_m4_d2_a0, precision: C1 0.435 +- 0.480
+D=5000, T_hard_noise_m4_d2_a0, recall:    C1 0.218 +- 0.349
+
+D=5000, T_hard_noise_m4_d3_a0, precision: C1 0.334 +- 0.458
+D=5000, T_hard_noise_m4_d3_a0, recall:    C1 0.071 +- 0.135
+
+D=5000, T_hard_noise_m4_d4_a0, precision: C1 0.351 +- 0.458
+D=5000, T_hard_noise_m4_d4_a0, recall:    C1 0.056 +- 0.114
+
+
+T-Strict & 5000 & $N/A$ & $N/A$ & 0/25\\
+D=10000, T_hard_noise_m0_d0_a0, precision: C1 0.305 +- 0.458
+D=10000, T_hard_noise_m0_d0_a0, recall:    C1 0.158 +- 0.329
+
+D=10000, T_hard_noise_m0_d1_a0, precision: C1 0.374 +- 0.463
+D=10000, T_hard_noise_m0_d1_a0, recall:    C1 0.080 +- 0.137
+
+D=10000, T_hard_noise_m0_d2_a0, precision: C1 0.451 +- 0.484
+D=10000, T_hard_noise_m0_d2_a0, recall:    C1 0.210 +- 0.348
+
+D=10000, T_hard_noise_m0_d3_a0, precision: C1 0.484 +- 0.459
+D=10000, T_hard_noise_m0_d3_a0, recall:    C1 0.116 +- 0.159
+
+D=10000, T_hard_noise_m0_d4_a0, precision: C1 0.408 +- 0.484
+D=10000, T_hard_noise_m0_d4_a0, recall:    C1 0.277 +- 0.407
+
+D=10000, T_hard_noise_m1_d0_a0, precision: C1 0.480 +- 0.447
+D=10000, T_hard_noise_m1_d0_a0, recall:    C1 0.139 +- 0.206
+
+D=10000, T_hard_noise_m1_d1_a0, precision: C1 0.336 +- 0.466
+D=10000, T_hard_noise_m1_d1_a0, recall:    C1 0.055 +- 0.128
+
+D=10000, T_hard_noise_m1_d2_a0, precision: C1 0.140 +- 0.348
+D=10000, T_hard_noise_m1_d2_a0, recall:    C1 0.072 +- 0.241
+
+D=10000, T_hard_noise_m1_d3_a0, precision: C1 0.508 +- 0.468
+D=10000, T_hard_noise_m1_d3_a0, recall:    C1 0.264 +- 0.403
+
+D=10000, T_hard_noise_m1_d4_a0, precision: C1 0.189 +- 0.388
+D=10000, T_hard_noise_m1_d4_a0, recall:    C1 0.118 +- 0.319
+
+D=10000, T_hard_noise_m2_d0_a0, precision: C1 0.303 +- 0.457
+D=10000, T_hard_noise_m2_d0_a0, recall:    C1 0.183 +- 0.350
+
+D=10000, T_hard_noise_m2_d1_a0, precision: C1 0.217 +- 0.399
+D=10000, T_hard_noise_m2_d1_a0, recall:    C1 0.002 +- 0.004
+
+D=10000, T_hard_noise_m2_d2_a0, precision: C1 0.298 +- 0.451
+D=10000, T_hard_noise_m2_d2_a0, recall:    C1 0.178 +- 0.355
+
+D=10000, T_hard_noise_m2_d3_a0, precision: C1 0.495 +- 0.478
+D=10000, T_hard_noise_m2_d3_a0, recall:    C1 0.248 +- 0.401
+
+D=10000, T_hard_noise_m2_d4_a0, precision: C1 0.128 +- 0.333
+D=10000, T_hard_noise_m2_d4_a0, recall:    C1 0.108 +- 0.290
+
+D=10000, T_hard_noise_m3_d0_a0, precision: C1 0.363 +- 0.469
+D=10000, T_hard_noise_m3_d0_a0, recall:    C1 0.196 +- 0.366
+
+D=10000, T_hard_noise_m3_d1_a0, precision: C1 0.356 +- 0.458
+D=10000, T_hard_noise_m3_d1_a0, recall:    C1 0.085 +- 0.180
+
+D=10000, T_hard_noise_m3_d2_a0, precision: C1 0.373 +- 0.481
+D=10000, T_hard_noise_m3_d2_a0, recall:    C1 0.118 +- 0.285
+
+D=10000, T_hard_noise_m3_d3_a0, precision: C1 0.429 +- 0.466
+D=10000, T_hard_noise_m3_d3_a0, recall:    C1 0.241 +- 0.388
+
+D=10000, T_hard_noise_m3_d4_a0, precision: C1 0.314 +- 0.464
+D=10000, T_hard_noise_m3_d4_a0, recall:    C1 0.218 +- 0.371
+
+D=10000, T_hard_noise_m4_d0_a0, precision: C1 0.397 +- 0.465
+D=10000, T_hard_noise_m4_d0_a0, recall:    C1 0.084 +- 0.136
+
+D=10000, T_hard_noise_m4_d1_a0, precision: C1 0.433 +- 0.475
+D=10000, T_hard_noise_m4_d1_a0, recall:    C1 0.079 +- 0.141
+
+D=10000, T_hard_noise_m4_d2_a0, precision: C1 0.536 +- 0.489
+D=10000, T_hard_noise_m4_d2_a0, recall:    C1 0.318 +- 0.413
+
+D=10000, T_hard_noise_m4_d3_a0, precision: C1 0.517 +- 0.464
+D=10000, T_hard_noise_m4_d3_a0, recall:    C1 0.350 +- 0.410
+
+D=10000, T_hard_noise_m4_d4_a0, precision: C1 0.267 +- 0.415
+D=10000, T_hard_noise_m4_d4_a0, recall:    C1 0.003 +- 0.006
+
+
+T-Strict & 10000 & $N/A$ & $N/A$ & 0/25\\
