@@ -179,7 +179,7 @@ from collections import deque
 if __name__ == "__main__":
     # Testing experiments
     #dataset_size = 400
-    for dataset_size in [50000]:
+    for dataset_size in [1000]:
         test_set_size = 30
 
         # Preparing the foreground
@@ -191,7 +191,7 @@ if __name__ == "__main__":
         bg_bboxes = (0.4, 0.0, 0.9, 0.5)
 
         # Also setting the image dimensions in advance
-        image_dimensions = [256, 256]
+        image_dimensions = [160,160]
         
         # Preparing the limited cross entropy targets
         crit_classes = [0,1]  # BG and first class (shirts)

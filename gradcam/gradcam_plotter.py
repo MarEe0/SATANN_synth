@@ -54,7 +54,7 @@ position_translation=0.2
 position_noise=0.1
 
 # Also setting the image dimensions in advance
-image_dimensions = [256, 256]
+image_dimensions = [160, 160]
 
 transform = tv.transforms.Compose(                                  # For the images:
     [tv.transforms.ToTensor(),                                      # Convert to torch.Tensor CxHxW type

@@ -155,7 +155,7 @@ if __name__ == "__main__":
     position_noise=0.1
 
     # Also setting the image dimensions in advance
-    image_dimensions = [256, 256]
+    image_dimensions = [160, 160]
     
     # Preparing the relations
     graph_relations = [[1, 2, 0, -0.4],

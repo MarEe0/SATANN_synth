@@ -59,7 +59,7 @@ if __name__ == "__main__":
         classes = range(1,num_classes+1)
 
         # Also setting the image dimensions in advance
-        image_dimensions = [256, 256]
+        image_dimensions = [160, 160]
         
 
         # Preparing dataset transforms:
@@ -96,7 +96,7 @@ if __name__ == "__main__":
             # CAM OVERLAP
             #  Getting overlap counts at test-time per class for all inits
             overlap_counts = {_class : {_class : {"oi" : [], "noi": []} for _class in classes} for _class in classes}
-            for initialization_path in glob(os.path.join(base_dataset_path, experimental_config["label"] + "*")):
+            for initialization_path in sorted(list(glob(os.path.join(base_dataset_path, experimental_config["label"] + "*")))):
                 # skipping SATANN examples (where alpha > 0)
                 if initialization_path[-2:] == ".5": continue
                 model_label = os.path.split(initialization_path)[-1]

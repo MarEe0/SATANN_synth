@@ -156,7 +156,7 @@ from collections import deque
 if __name__ == "__main__":
     # Testing experiments
     #dataset_size = 400
-    for dataset_size in [20,50,100,200,400]:
+    for dataset_size in [100]:
         test_set_size = 30
 
         # Preparing the foreground
@@ -167,7 +167,7 @@ if __name__ == "__main__":
         position_noise=0.1
 
         # Also setting the image dimensions in advance
-        image_dimensions = [256, 256]
+        image_dimensions = [160,160]
         
         # Preparing the relations
         graph_relations = [[1, 2, 0, -0.4],

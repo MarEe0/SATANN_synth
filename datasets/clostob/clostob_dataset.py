@@ -278,7 +278,7 @@ if __name__ == '__main__':
     classes = range(1,num_classes+1)
 
     # Also setting the image dimensions in advance
-    image_dimensions = [256, 256]
+    image_dimensions = [160, 160]
     
 
     # Preparing dataset transforms:
@@ -296,10 +296,10 @@ if __name__ == '__main__':
                                             size=test_set_size,
                                             fg_classes=fg_classes,
                                             fg_positions=base_fg_positions,
-                                            position_translation=position_translation,
-                                            position_noise=position_noise,
-                                            bg_classes=[0,1,8], # Background class from config
-                                            bg_amount=6,
+                                            position_translation=0.25,
+                                            position_noise=0.1,
+                                            bg_classes=[7], # Background class from config
+                                            bg_amount=3,
                                             #bg_bboxes=(0.4, 0.0, 0.9, 0.5),
                                             flattened=False,
                                             lazy_load=False,
@@ -329,11 +329,13 @@ if __name__ == '__main__':
         image = (test_dataset[i]["image"][0] + 1.0)/2.0
         labelmap = test_dataset[i]["labelmap"]
         for label, color in zip(range(1,4), [plt.get_cmap("tab10")(1)[:3], plt.get_cmap("tab10")(2)[:3], plt.get_cmap("tab10")(3)[:3]]):
+            if label > 1: continue
             image = mark_boundaries(image, labelmap==label, color=color, mode="thick", background_label=0)
         plt.tight_layout()
         plt.axis("off")
         plt.imshow(image, cmap="gray")
-        plt.savefig("./veryhard{}.eps".format(i), bbox_inches='tight')
+        plt.savefig("./easy{}.eps".format(i), bbox_inches='tight')
+        plt.savefig("./easy{}.png".format(i), bbox_inches='tight')
         #plt.subplot(132)
         #plt.imshow(test_dataset[i]["labelmap"])
         #for bbox in test_dataset[i]["bboxes"]:
