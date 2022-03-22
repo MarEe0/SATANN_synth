@@ -26,9 +26,10 @@ if __name__ == "__main__":
     dataset_sizes = [1000,5000,10000,50000]
     # Acquire these from the proof_of_convergence
     # Format: list of size D, containing list of size labels
-    convergence_lists = [[[False, False, False, True, False, True, False, True, False, False, True, False, False, True, True, False, False, False, False, False, True, False, False, False, True]],
-                         [[False, False, True, True, True, True, True, True, False, True, False, False, True, True, False, True, True, True, False, False, False, True, True, False, False]],
-                         [[True, False, True, False, False, True, True, False, False, True, True, True, True, True, True, False, False, True, True, True, True, False, True, True, True]]]
+    convergence_lists = [[[True, True, False, False, False, False, False, True, False, True, False, False, True, False, False, False, False, False, False, False, False, True, False, False, False]],
+                         [[False, True, False, True, False, True, True, True, False, False, True, False, True, True, True, True, False, False, False, True, False, True, False, True, True]],
+                         [[True, True, True, True, True, True, True, True, False, True, False, True, True, True, True, True, False, True, True, True, True, False, True, True, True]],
+                         [[True, True, True, True, True, False, True, True, True, False, True, True, True, True, True, True, True, True, True, True, True, True, True, True, False]]]
     
     # Iterating over each dataset size
     for dataset_size, convergence_list in zip(dataset_sizes, convergence_lists):
@@ -41,7 +42,7 @@ if __name__ == "__main__":
         # Preparing the foreground
         fg_label = "T"
         fg_classes = [0, 1, 8]
-        base_fg_positions = [(0.65, 0.25), (0.65, 0.65), (0.35, 0.65)]
+        base_fg_positions = [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)]
         position_translation=0.0
         position_noise=0.0
         bg_bboxes = (0.4, 0.0, 0.9, 0.5)

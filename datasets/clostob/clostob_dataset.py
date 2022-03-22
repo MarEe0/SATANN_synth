@@ -270,7 +270,7 @@ if __name__ == '__main__':
     # Preparing the foreground
     fg_label = "T"
     fg_classes = [0, 1, 8]
-    base_fg_positions = [(0.65, 0.25), (0.65, 0.65), (0.35, 0.65)]
+    base_fg_positions = [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)]
     position_translation=0.25
     position_noise=0.1
 

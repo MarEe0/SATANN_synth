@@ -55,6 +55,8 @@ if __name__ == "__main__":
         fg_label = "T"
         fg_classes = [0, 1, 8]
         base_fg_positions = [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)]
+        fg_classes = [0, 8, 1]
+        base_fg_positions = [(0.65, 0.3), (0.35, 0.7), (0.65, 0.7)]
         position_translation=0.0
         position_noise=0.0
 
@@ -187,14 +189,14 @@ if __name__ == "__main__":
                     #plt.title("Effects of reference {} on class {} recall".format(reference_class, _class))
                     mkdir("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_seg/dataset_{}/{}".format(dataset_size, experimental_config["label"]))
                     plt.axis("off")
-                    plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_seg/dataset_{}/{}/ref{}on{}_recall.png".format(dataset_size, experimental_config["label"], reference_class, _class), bbox_inches="tight")
+                    plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_seg/dataset_{}/{}/ref{}on{}_recall.png".format(dataset_size, experimental_config["label"], reference_class-1, _class), bbox_inches="tight")
                     plt.clf()
-                    np.save("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_seg/dataset_{}/{}/ref{}on{}_recall.npy".format(dataset_size, experimental_config["label"], reference_class, _class), recall_heatmap)
+                    np.save("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_seg/dataset_{}/{}/ref{}on{}_recall.npy".format(dataset_size, experimental_config["label"], reference_class-1, _class), recall_heatmap)
                     plt.imshow(precision_heatmap, vmin=0, vmax=1)
                     #plt.title("Effects of reference {} on class {} precision".format(reference_class, _class))
                     mkdir("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_seg/dataset_{}/{}".format(dataset_size, experimental_config["label"]))
                     plt.axis("off")
-                    plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_seg/dataset_{}/{}/ref{}on{}_precision.png".format(dataset_size, experimental_config["label"], reference_class, _class), bbox_inches="tight")
+                    plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_seg/dataset_{}/{}/ref{}on{}_precision.png".format(dataset_size, experimental_config["label"], reference_class-1, _class), bbox_inches="tight")
                     plt.clf()
-                    np.save("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_seg/dataset_{}/{}/ref{}on{}_precision.npy".format(dataset_size, experimental_config["label"], reference_class, _class), precision_heatmap)
+                    np.save("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_seg/dataset_{}/{}/ref{}on{}_precision.npy".format(dataset_size, experimental_config["label"], reference_class-1, _class), precision_heatmap)
 

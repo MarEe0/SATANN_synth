@@ -178,7 +178,7 @@ def plot_experiment(path_base, experiment_label):
 
 if __name__ == "__main__":
     path_base = "/media/mriva/LaCie/SATANN/synthetic_fine_segmentation_results/results_strict/dataset_10000"
-    experiment_labels = ["T_hard_noise"]#["T_easy_noise", "T_hard_noise", "T_veryhard_noise"]
+    experiment_labels = ["T_strict_noise"]#["T_easy_noise", "T_hard_noise", "T_veryhard_noise"]
     model_seeds = range(5)
     dataset_seeds = range(5)
     #alphas = [0, 0.2, 0.5, 0.7]

@@ -179,14 +179,14 @@ from collections import deque
 if __name__ == "__main__":
     # Testing experiments
     #dataset_size = 400
-    for dataset_size in [1000]:
+    for dataset_size in [10000]:
         test_set_size = 30
 
         # Preparing the foreground
         fg_label = "T"
         fg_classes = [0, 1, 8]
-        base_fg_positions = [(0.65, 0.25), (0.65, 0.65), (0.35, 0.65)]
-        position_translation=0.25
+        base_fg_positions = [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)]
+        position_translation=0.5
         position_noise=0
         bg_bboxes = (0.4, 0.0, 0.9, 0.5)
 
@@ -214,11 +214,11 @@ if __name__ == "__main__":
         model_seeds = range(5)
         dataset_split_seeds = range(5)
         #alphas=[0, 0.2, 0.5, 0.7]
-        alphas = [0, 0.5]
+        alphas = [0.5]
         #experimental_configs = [{"label": fg_label + "_easy_noise", "bg_classes": [7], "bg_amount": 3},
         #                        {"label": fg_label + "_hard_noise", "bg_classes": [0], "bg_amount": 3},
         #                        {"label": fg_label + "_veryhard_noise", "bg_classes": [0,1,8], "bg_amount": 6}]
-        experimental_configs = [{"label": fg_label + "_hard_noise", "bg_classes": [0], "bg_amount": 3}]
+        experimental_configs = [{"label": fg_label + "_strict_noise", "bg_classes": [0], "bg_amount": 3}]
         
         # Running experiments
         for experimental_config in experimental_configs:

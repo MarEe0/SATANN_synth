@@ -38,7 +38,7 @@ if __name__ == "__main__":
         # Preparing the foreground
         fg_label = "T"
         fg_classes = [0, 1, 8]
-        base_fg_positions = [(0.65, 0.25), (0.65, 0.65), (0.35, 0.65)]
+        base_fg_positions = [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)]
         position_translation=0.5
         position_noise=0.0
         bg_bboxes = (0.4, 0.0, 0.9, 0.5)
@@ -191,3 +191,4 @@ if __name__ == "__main__":
                     print("$N/A$", end=" & ")
             print("{}/{}".format(sum(model_has_converged), len(model_has_converged)), end="")
             print("\\\\")
+            print(model_has_converged)

@@ -23,7 +23,7 @@ def flatten(L):
 
 
 def label_to_name(label):
-    if "hard" in label:
+    if "strict" in label:
         return "{}-Strict".format(label[0].upper())
 
 def get_val_rel_losses_dice(path_base, experiment_label):
@@ -56,7 +56,7 @@ if __name__ == "__main__":
                          [[True, False, True, False, False, True, True, False, False, True, True, True, True, True, True, False, False, True, True, True, True, False, True, True, True]]]
     for dataset_size, dataset_convergence_lists in zip(dataset_sizes, convergence_lists):
         path_base = "/media/mriva/LaCie/SATANN/synthetic_fine_segmentation_results/results_strict/dataset_{}".format(dataset_size)
-        experiment_labels = ["T_hard_noise"]#, "T_veryhard_noise"]
+        experiment_labels = ["T_strict_noise"]#, "T_veryhard_noise"]
         model_seeds = range(5)
         dataset_seeds = range(5)
         #alphas = [0, 0.5]
