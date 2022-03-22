@@ -118,11 +118,20 @@ class SpatialPriorErrorSegmentation(SpatialPriorError):
         
         return centroids_y, centroids_x
 
-    def forward(self, output):
+    def forward(self, output, truths=None):
         """Compute forward pass.
         
         Output should be of format (B,C,H,W)"""
-        centroids_y, centroids_x = self.compute_centroids(output)
+        if self.crit_classes is not None:
+            full_output = torch.empty((output.shape[0], max(max(self.crit_classes), max(self.uncrit_classes))+1, *output.shape[2:]), device=output.device)
+            for i, crit_class in enumerate(self.crit_classes):
+                full_output[:,crit_class] = output[:,i]
+            for i, uncrit_class in enumerate(self.uncrit_classes):
+                full_output[:,uncrit_class] = (truths==uncrit_class).double()
+        else:
+            full_output = output
+        
+        centroids_y, centroids_x = self.compute_centroids(full_output)
         dy_all, dx_all = self.compute_errors(centroids_y, centroids_x)
 
         # Aggregating the errors - TODO: other aggregations?

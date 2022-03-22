@@ -116,7 +116,7 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, ta
                     else:
                         crit_loss = torch.tensor(0)
                     if alpha > 0:
-                        rel_loss = relational_criterion(outputs)
+                        rel_loss = relational_criterion(outputs, targets)
                     else:
                         rel_loss = torch.tensor(0)
                     loss = ((1-alpha)*crit_loss + (alpha)*rel_loss) * loss_strength
