@@ -239,8 +239,35 @@ class CloStObDataset(Dataset):
             sample["labelmap"] = self.target_transform(sample["labelmap"])
         return sample
     
-    def generate_meaningless_image(self, _class):
-        raise NotImplementedError("Still not implemented")
+    def generate_meaningless_image(self, idx, omitted_classes, add_bg_noise=False):
+        """Generates an image with meaningless information and some classes omitted.
+        
+        :param omitted_classes: list of classes to not be added to the image.
+        :param add_bg_noise: If True, random noise images are added."""
+
+        # Generating a normal CSO image
+        sample = generate_image(idx, self.base_dataset, self.image_dimensions, self.fg_classes, self.fg_positions, self.position_translation, self.position_noise, self.rescale_classes, self.rescale_range, self.occlusion_classes, self.occlusion_range, self.bg_classes, self.bg_amount, self.bg_bboxes, self.fine_segment, self.flattened)
+
+        # Generating pure uniform noise image in the [0,256] range
+        meaningless_image = np.random.randint(low=0, high=256, size=sample["image"].shape)
+        meaningless_image = meaningless_image.astype(sample["image"].dtype)
+
+        # Adding bg/noise objects if requested
+        if add_bg_noise:
+            meaningless_image[sample["bg_labelmap"] > 0] = sample["image"][sample["bg_labelmap"] > 0]
+
+        # Adding non-omitted objects of interest
+        for class_idx, fg_class in enumerate(self.fg_classes):
+            if fg_class in omitted_classes: continue  # Skip classes to omit
+            meaningless_image[sample["labelmap"] == class_idx+1] = sample["image"][sample["labelmap"] == class_idx+1]
+        
+        # Replacing image in sample
+        sample["image"] = meaningless_image
+
+        # Applying requested transforms
+        if self.transform is not None:
+            sample["image"] = self.transform(sample["image"])
+        return sample
     
     def generate_reference_shifts(self, idx, reference_class, stride=32, element_shape=(28,28)):
         """Generates a set of images with shifted references."""
@@ -296,11 +323,11 @@ if __name__ == '__main__':
                                             size=test_set_size,
                                             fg_classes=fg_classes,
                                             fg_positions=base_fg_positions,
-                                            position_translation=0.25,
-                                            position_noise=0.1,
+                                            position_translation=0.0,
+                                            position_noise=0.0,
                                             bg_classes=[0], # Background class from config
                                             bg_amount=3,
-                                            #bg_bboxes=(0.4, 0.0, 0.9, 0.5),
+                                            bg_bboxes=(0.4, 0.0, 0.9, 0.5),
                                             flattened=False,
                                             lazy_load=False,
                                             fine_segment=True,
@@ -326,15 +353,17 @@ if __name__ == '__main__':
 
     for i in range(10):
         #plt.subplot(131)
-        image = (test_dataset[i]["image"][0] + 1.0)/2.0
-        labelmap = test_dataset[i]["labelmap"]
-        for label, color in zip(range(1,4), [plt.get_cmap("tab10")(1)[:3], plt.get_cmap("tab10")(2)[:3], plt.get_cmap("tab10")(3)[:3]]):
-            image = mark_boundaries(image, labelmap==label, color=color, mode="thick", background_label=0)
+        #image = (test_dataset[i]["image"][0] + 1.0)/2.0
+        #labelmap = test_dataset[i]["labelmap"]
+        #for label, color in zip(range(1,4), [plt.get_cmap("tab10")(1)[:3], plt.get_cmap("tab10")(2)[:3], plt.get_cmap("tab10")(3)[:3]]):
+        #    image = mark_boundaries(image, labelmap==label, color=color, mode="thick", background_label=0)
+        image = test_dataset.generate_meaningless_image(i, [0,1], False)["image"][0]
         plt.tight_layout()
         plt.axis("off")
         plt.imshow(image, cmap="gray")
-        plt.savefig("./hard{}.eps".format(i), bbox_inches='tight')
-        plt.savefig("./hard{}.png".format(i), bbox_inches='tight')
+        plt.show()
+        #plt.savefig("./hard{}.eps".format(i), bbox_inches='tight')
+        #plt.savefig("./hard{}.png".format(i), bbox_inches='tight')
         #plt.subplot(132)
         #plt.imshow(test_dataset[i]["labelmap"])
         #for bbox in test_dataset[i]["bboxes"]:
