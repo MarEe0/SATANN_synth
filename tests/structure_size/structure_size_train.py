@@ -244,10 +244,10 @@ if __name__ == "__main__":
                                                     target_transform=target_transform)
             
 
-                        for example_idx in range(4):
-                            show_sample_with_receptive_field(train_dataset[example_idx])
-                            plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/structure_size/examples/{}_{}.png".format(experiment_label, example_idx),bbox_inches="tight")
-                            plt.clf()
+                        #for example_idx in range(4):
+                        #    show_sample_with_receptive_field(train_dataset[example_idx])
+                        #    plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/structure_size/examples/{}_{}.png".format(experiment_label, example_idx),bbox_inches="tight")
+                        #    plt.clf()
                         # Run experiment
                         run_experiment(model_seed=model_seed, dataset_split_seed=dataset_split_seed,
                                     dataset=train_dataset, test_dataset=None,
