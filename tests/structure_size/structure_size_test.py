@@ -68,7 +68,9 @@ if __name__ == "__main__":
 
         # Experiment configurations
         experimental_configs = [{"label": fg_label + "_strict_noise_incbf", "bg_classes": [0], "bg_amount": 3, "structure_size": [24,32,40]},
+                                {"label": fg_label + "_strict_noise_medbf", "bg_classes": [0], "bg_amount": 3, "structure_size": [30,40,50]},
                                 {"label": fg_label + "_strict_noise_inbf", "bg_classes": [0], "bg_amount": 3, "structure_size": [33,44,55]},
+                                {"label": fg_label + "_strict_noise_medof", "bg_classes": [0], "bg_amount": 3, "structure_size": [48,64,80]},
                                 {"label": fg_label + "_strict_noise_outbf", "bg_classes": [0], "bg_amount": 3, "structure_size": [60,80,100]},
                                 {"label": fg_label + "_strict_noise_outof", "bg_classes": [0], "bg_amount": 3, "structure_size": [84,112,140]}]
         
