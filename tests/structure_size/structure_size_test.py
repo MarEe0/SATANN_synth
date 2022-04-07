@@ -119,6 +119,8 @@ if __name__ == "__main__":
             initialization_paths = [item for item in initialization_paths if item[-2:] != ".5"] # skipping SATANN examples (where alpha > 0)
             precisions = {_class : None for _class in classes}
             recalls = {_class : None for _class in classes}
+            nonconv_precisions = {_class : None for _class in classes}
+            nonconv_recalls = {_class : None for _class in classes}
             model_has_converged = [False for _ in range(len(initialization_paths))]
             for init_idx, initialization_path in enumerate(initialization_paths):
                 # skipping SATANN examples (where alpha > 0)
@@ -167,6 +169,17 @@ if __name__ == "__main__":
                             recalls[_class] = class_recalls
                         else:
                             recalls[_class] = torch.cat([recalls[_class], class_recalls], dim=0)
+                    
+                    # Non-convs have a separate tracker
+                    else:
+                        if nonconv_precisions[_class] is None:
+                            nonconv_precisions[_class] = class_precisions
+                        else:
+                            nonconv_precisions[_class] = torch.cat([nonconv_precisions[_class], class_precisions], dim=0)
+                        if nonconv_recalls[_class] is None:
+                            nonconv_recalls[_class] = class_recalls
+                        else:
+                            nonconv_recalls[_class] = torch.cat([nonconv_recalls[_class], class_recalls], dim=0)
                 
 
                 # Printing partial results
@@ -185,7 +198,7 @@ if __name__ == "__main__":
                 print("\n")
 
                 # Saving test outputs as images
-                for test_idx, (input, target, output) in list(enumerate(zip(inputs, truths, outputs_argmax)))[:save_image_amount]:
+                """for test_idx, (input, target, output) in list(enumerate(zip(inputs, truths, outputs_argmax)))[:save_image_amount]:
                     # Converting the input tensor to a 3-channel image
                     rgb_image = ((np.repeat(input.detach().cpu().numpy().squeeze()[...,None],3,axis=2) + 1) / 2).astype(np.float32)
                     # Coloring TPs, FPs, FNs,
@@ -203,14 +216,15 @@ if __name__ == "__main__":
                     plt.axis("off")
                     plt.savefig(os.path.join(plot_path, model_label+convergence_marker, "test{}.png".format(test_idx)), bbox_inches="tight")
                     #plt.savefig(os.path.join(plot_path, model_label+convergence_marker, "test{}.eps".format(test_idx)), bbox_inches="tight")
-                    plt.clf()
+                    plt.clf()"""
 
             print("")
                 
             # Printing results (latex format)
-            # Config. | D. | Precision1 | Recall1 | (other classes?) | ConvergeRate
+            # Config. | D. | ConvergeRate | Precision1 | Recall1 | NCPrecision | NCRecall
             print(label_to_name(experimental_config["label"]), end=" & ")
             print(dataset_size, end=" & ")
+            print("{}/{}".format(sum(model_has_converged), len(model_has_converged)), end=" & ")
             for _class in crit_classes:
                 if any(model_has_converged):
                     mean_class_precision, std_class_precision = precisions[_class].mean().item(), precisions[_class].std().item()
@@ -220,6 +234,15 @@ if __name__ == "__main__":
                 else:  # No models have converged
                     print("$N/A$", end=" & ")
                     print("$N/A$", end=" & ")
-            print("{}/{}".format(sum(model_has_converged), len(model_has_converged)), end="")
+                # Printing non-converges
+                if not all(model_has_converged):
+                    mean_class_precision, std_class_precision = nonconv_precisions[_class].mean().item(), nonconv_precisions[_class].std().item()
+                    mean_class_recall, std_class_recall = nonconv_recalls[_class].mean().item(), nonconv_recalls[_class].std().item()
+                    print("${:.2} \pm {:.2}$".format(mean_class_precision, std_class_precision), end=" & ")
+                    print("${:.2} \pm {:.2}$".format(mean_class_recall, std_class_recall), end=" & ")
+                else:  # All models have converged
+                    print("$N/A$", end=" & ")
+                    print("$N/A$", end=" & ")
+
             print("\\\\")
             print(model_has_converged)
