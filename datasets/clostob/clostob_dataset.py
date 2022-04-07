@@ -42,7 +42,8 @@ def load_dataset(base_dataset_name):
 def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list, fg_positions: list,
                    position_translation: float, position_noise: float, rescale_classes: list, 
                    rescale_range: tuple, occlusion_classes: list, occlusion_range: tuple, 
-                   bg_classes: list, bg_amount: float, bg_bbox: tuple, fine_segment: bool, flattened: bool):
+                   bg_classes: list, bg_amount: float, bg_bbox: tuple, fine_segment: bool, flattened: bool,
+                   omission_idxs: list=None):
     """Generates a single CloStOb image and corresponding label map and bounding boxes.
 
     :param seed: Random number generator seed for this image.
@@ -62,10 +63,14 @@ def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list
     :param bg_bbox: normalised limit coordinates for the bg images, as (x_min,y_min,x_max,y_max)
     :param fine_segment: If True, labelmaps are cut to the positive part of images.
     :param flattened: If True, return images as flattened 1D arrays. Else, return images shaped like `size`.
+    :param omission_idxs: If not None, fg_classes with indexes in omission_idxs will not be added to the image.
     :return: a tuple (image, labelmap) containing the image and corresponding labelmap.
     """
     # Initialising RNG with specified seed
     rng = np.random.default_rng(seed)
+
+    # Casting a None omission_idxs to empty list
+    if omission_idxs is None: omission_idxs = []
 
     # Creating empty base image and labelmap
     image, labelmap = np.zeros(image_dimensions, dtype="float32"), np.zeros(image_dimensions, dtype=int)
@@ -129,17 +134,19 @@ def generate_image(seed, base_dataset, image_dimensions: tuple, fg_classes: list
             occlusion_point_y = rng.integers(low=0, high=fg_element.shape[1]-occlusion_size)
             fg_element[occlusion_point_x:occlusion_point_x+occlusion_size, occlusion_point_y:occlusion_point_y+occlusion_size] = 0
 
-        fg_element_coords = tuple(
-            np.s_[origin:end] for origin, end in zip(fg_origin_coords, fg_origin_coords + fg_element.shape))
-        # Adding fg element
-        image[fg_element_coords] = fg_element
-        # Adding labelmap element        
-        map_element = np.full(fg_element.shape, idx+1)
-        if fine_segment:  # If the labelmap should cut out the zero part
-            map_element[fg_element == 0] = 0
-        labelmap[fg_element_coords] = map_element
-        # Adding bounding box element
-        bboxes[idx] = np.divide([*(fg_origin_coords + np.floor_divide(fg_element.shape,2)), *fg_element.shape], [*image_dimensions,*image_dimensions])
+        # If element is not omitted, add to image
+        if not (idx+1) in omission_idxs:
+            fg_element_coords = tuple(
+                np.s_[origin:end] for origin, end in zip(fg_origin_coords, fg_origin_coords + fg_element.shape))
+            # Adding fg element
+            image[fg_element_coords] = fg_element
+            # Adding labelmap element        
+            map_element = np.full(fg_element.shape, idx+1)
+            if fine_segment:  # If the labelmap should cut out the zero part
+                map_element[fg_element == 0] = 0
+            labelmap[fg_element_coords] = map_element
+            # Adding bounding box element
+            bboxes[idx] = np.divide([*(fg_origin_coords + np.floor_divide(fg_element.shape,2)), *fg_element.shape], [*image_dimensions,*image_dimensions])
 
     # Flattening image if necessary
     if flattened:
@@ -269,7 +276,7 @@ class CloStObDataset(Dataset):
             sample["image"] = self.transform(sample["image"])
         return sample
     
-    def generate_reference_shifts(self, idx, reference_class, stride=32, element_shape=(28,28)):
+    def generate_reference_shifts(self, idx, reference_class, omission_idxs=None, stride=32, element_shape=(28,28)):
         """Generates a set of images with shifted references."""
         set_of_shifts = []
         shifted_fg_positions = self.fg_positions
@@ -283,7 +290,7 @@ class CloStObDataset(Dataset):
                 x_anchor, y_anchor = x_anchor_base/self.image_dimensions[0], y_anchor_base/self.image_dimensions[1]
                 shifted_fg_positions[idx_to_shift] = (x_anchor + normed_element_shape[0], y_anchor + normed_element_shape[1])
 
-                sample = generate_image(idx, self.base_dataset, self.image_dimensions, self.fg_classes, shifted_fg_positions, 0, 0, self.rescale_classes, self.rescale_range, self.occlusion_classes, self.occlusion_range, self.bg_classes, self.bg_amount, self.bg_bboxes, self.fine_segment, self.flattened)
+                sample = generate_image(idx, self.base_dataset, self.image_dimensions, self.fg_classes, shifted_fg_positions, 0, 0, self.rescale_classes, self.rescale_range, self.occlusion_classes, self.occlusion_range, self.bg_classes, self.bg_amount, self.bg_bboxes, self.fine_segment, self.flattened, omission_idxs=omission_idxs)
                 sample = self.apply_transforms(sample)
                 set_of_shifts.append(sample)
         return set_of_shifts, set_of_anchors

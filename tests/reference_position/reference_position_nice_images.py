@@ -101,7 +101,7 @@ def make_position_histogram(label, fg_positions, position_translation, position_
     ax.axes.xaxis.set_visible(False)
     ax.axes.yaxis.set_visible(False)
     plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_oi_map.png".format(label), bbox_inches="tight")
-    plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_oi_map.eps".format(label), bbox_inches="tight")
+    #plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_oi_map.eps".format(label), bbox_inches="tight")
     plt.clf()
 
     plt.imshow(noise_count, cmap="Reds")
@@ -109,20 +109,20 @@ def make_position_histogram(label, fg_positions, position_translation, position_
     ax.axes.xaxis.set_visible(False)
     ax.axes.yaxis.set_visible(False)
     plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_noise_map.png".format(label), bbox_inches="tight")
-    plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_noise_map.eps".format(label), bbox_inches="tight")
+    #plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_noise_map.eps".format(label), bbox_inches="tight")
     plt.clf()
     
     # Saving overlays
     plt.imshow(oi_overlay)
     plt.axis("off")
     plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_oi_overlay.png".format(label), bbox_inches="tight")
-    plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_oi_overlay.eps".format(label), bbox_inches="tight")
+    #plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_oi_overlay.eps".format(label), bbox_inches="tight")
     plt.clf()
 
     plt.imshow(noise_overlay)
     plt.axis("off")
     plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_noise_overlay.png".format(label), bbox_inches="tight")
-    plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_noise_overlay.eps".format(label), bbox_inches="tight")
+    #plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_noise_overlay.eps".format(label), bbox_inches="tight")
     plt.clf()
     
 
@@ -132,12 +132,12 @@ def overlay_heatmap_to_basic_image(label, config_label, _class, fg_positions, da
     basic_image = get_basic_image(fg_positions, no_class=_class)
 
     # Load the corresponding heatmaps
-    precision_heatmap = np.load("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_{}/dataset_{}/{}/ref{}on1_precision.npy".format(label, dataset_size, config_label, _class)) 
-    recall_heatmap = np.load("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_{}/dataset_{}/{}/ref{}on1_recall.npy".format(label, dataset_size, config_label, _class)) 
+    precision_heatmap = np.load("/media/mriva/LaCie/SATANN/synthetic_fine_segmentation_results/tests/reference_position/results_{}/dataset_{}/{}/ref{}on1_precision.npy".format(label, dataset_size, config_label, _class)) 
+    recall_heatmap = np.load("/media/mriva/LaCie/SATANN/synthetic_fine_segmentation_results/tests/reference_position/results_{}/dataset_{}/{}/ref{}on1_recall.npy".format(label, dataset_size, config_label, _class)) 
     
     # Applying to the basic image
-    precision_overlay = apply_heatmap(basic_image, precision_heatmap, use_rgb=True, colormap=cv2.COLORMAP_JET)
-    recall_overlay = apply_heatmap(basic_image, recall_heatmap, use_rgb=True, colormap=cv2.COLORMAP_JET)
+    precision_overlay = apply_heatmap(basic_image, precision_heatmap, use_rgb=True, colormap=cv2.COLORMAP_VIRIDIS)
+    recall_overlay = apply_heatmap(basic_image, recall_heatmap, use_rgb=True, colormap=cv2.COLORMAP_VIRIDIS)
 
     # Saving figures - pure
     plt.imshow(precision_heatmap, cmap="viridis", vmin=0, vmax=1)
@@ -145,26 +145,26 @@ def overlay_heatmap_to_basic_image(label, config_label, _class, fg_positions, da
     ax.axes.xaxis.set_visible(False)
     ax.axes.yaxis.set_visible(False)
     plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_{}_{}_{}on1_precision_map.png".format(label, dataset_size, config_label, _class), bbox_inches="tight")
-    plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_{}_{}_{}on1_precision_map.eps".format(label, dataset_size, config_label, _class), bbox_inches="tight")
+    #plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_{}_{}_{}on1_precision_map.eps".format(label, dataset_size, config_label, _class), bbox_inches="tight")
     plt.clf()
     plt.imshow(recall_heatmap, cmap="viridis", vmin=0, vmax=1)
     ax = plt.gca()
     ax.axes.xaxis.set_visible(False)
     ax.axes.yaxis.set_visible(False)
     plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_{}_{}_{}on1_recall_map.png".format(label, dataset_size, config_label, _class), bbox_inches="tight")
-    plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_{}_{}_{}on1_recall_map.eps".format(label, dataset_size, config_label, _class), bbox_inches="tight")
+    #plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_{}_{}_{}on1_recall_map.eps".format(label, dataset_size, config_label, _class), bbox_inches="tight")
     plt.clf()
 
     # Saving figures - overlay
     plt.imshow(precision_overlay)
     plt.axis("off")
     plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_{}_{}_{}on1_precision_overlay.png".format(label, dataset_size, config_label, _class), bbox_inches="tight")
-    plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_{}_{}_{}on1_precision_overlay.eps".format(label, dataset_size, config_label, _class), bbox_inches="tight")
+    #plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_{}_{}_{}on1_precision_overlay.eps".format(label, dataset_size, config_label, _class), bbox_inches="tight")
     plt.clf()
     plt.imshow(recall_overlay)
     plt.axis("off")
     plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_{}_{}_{}on1_recall_overlay.png".format(label, dataset_size, config_label, _class), bbox_inches="tight")
-    plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_{}_{}_{}on1_recall_overlay.eps".format(label, dataset_size, config_label, _class), bbox_inches="tight")
+    #plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/tests/reference_position/results_pretty/{}_{}_{}_{}on1_recall_overlay.eps".format(label, dataset_size, config_label, _class), bbox_inches="tight")
     plt.clf()
 
 #make_position_histogram("seg", [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)], 0.2, 0.1, None)
@@ -175,9 +175,18 @@ overlay_heatmap_to_basic_image("seg", "T_hard_noise", 3, [(0.65, 0.3), (0.65, 0.
 overlay_heatmap_to_basic_image("seg", "T_hard_noise", 1, [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)], 100)
 overlay_heatmap_to_basic_image("seg", "T_hard_noise", 2, [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)], 100)
 overlay_heatmap_to_basic_image("seg", "T_hard_noise", 3, [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)], 100)
+overlay_heatmap_to_basic_image("seg", "T_hard_noise", 1, [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)], 1000)
+overlay_heatmap_to_basic_image("seg", "T_hard_noise", 2, [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)], 1000)
+overlay_heatmap_to_basic_image("seg", "T_hard_noise", 3, [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)], 1000)
 overlay_heatmap_to_basic_image("strict", "T_strict_noise", 1, [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)], 50000)
 overlay_heatmap_to_basic_image("strict", "T_strict_noise", 2, [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)], 50000)
 overlay_heatmap_to_basic_image("strict", "T_strict_noise", 3, [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)], 50000)
 overlay_heatmap_to_basic_image("strict", "T_strict_noise", 1, [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)], 5000)
 overlay_heatmap_to_basic_image("strict", "T_strict_noise", 2, [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)], 5000)
 overlay_heatmap_to_basic_image("strict", "T_strict_noise", 3, [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)], 5000)
+overlay_heatmap_to_basic_image("strict", "T_strict_noise", 1, [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)], 10000)
+overlay_heatmap_to_basic_image("strict", "T_strict_noise", 2, [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)], 10000)
+overlay_heatmap_to_basic_image("strict", "T_strict_noise", 3, [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)], 10000)
+overlay_heatmap_to_basic_image("strict", "T_strict_noise", 1, [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)], 1000)
+overlay_heatmap_to_basic_image("strict", "T_strict_noise", 2, [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)], 1000)
+overlay_heatmap_to_basic_image("strict", "T_strict_noise", 3, [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)], 1000)
