@@ -40,7 +40,7 @@ class limitedCrossEntropyLoss(torch.nn.CrossEntropyLoss):
                              label_smoothing=self.label_smoothing)
 
 
-def run_experiment(model_seed, dataset_split_seed, dataset, test_dataset, relational_criterion, alpha, crit_classes=None, deterministic=False, max_val_set_size=3000, experiment_label=None):
+def run_experiment(model_seed, dataset_split_seed, dataset, relational_criterion, alpha, crit_classes=None, deterministic=False, max_val_set_size=3000, experiment_label=None):
     results_path = "results/results_strict"
 
     # Default training label: timestamp of start of training
@@ -78,11 +78,9 @@ def run_experiment(model_seed, dataset_split_seed, dataset, test_dataset, relati
         val_set_size = max_val_set_size
     test_set_size = dataset_size - (train_set_size + val_set_size)  # to discard
     train_set, val_set, _ = random_split(dataset, (train_set_size, val_set_size, test_set_size), generator=dataset_split_rng)
-    test_set = test_dataset
     # Preparing dataloaders
     data_loaders = {"train": DataLoader(train_set, batch_size=batch_size, num_workers=2),
-                    "val": DataLoader(val_set, batch_size=batch_size, num_workers=2),
-                    "test": DataLoader(test_set, batch_size=batch_size, num_workers=2)}
+                    "val": DataLoader(val_set, batch_size=batch_size, num_workers=2)}
 
 
     # Initializing model
@@ -104,73 +102,6 @@ def run_experiment(model_seed, dataset_split_seed, dataset, test_dataset, relati
                         max_epochs=100, metrics=["dice","cc"], clip_max_norm=1, training_label=experiment_label,
                         results_path=results_path)
 
-    # Testing
-    test_outputs, truths = [], []
-    for item_pair in data_loaders["test"]:
-        inputs = item_pair["image"].to(device)
-        with torch.set_grad_enabled(False):
-            test_outputs.append(model(inputs.to(device)).detach().cpu())
-        truths.append(item_pair["labelmap"])
-    
-    # Saving test and metrics
-    print("\n Test results:")
-    test_path = os.path.join(results_path, experiment_label, "test")
-    with torch.no_grad():
-        test_outputs = torch.cat(test_outputs, dim=0).to(device)
-        truths = torch.cat(truths, dim=0).to(device)
-        all_test_images = torch.cat([item_pair["image"] for item_pair in data_loaders["test"]], dim=0)
-        num_classes = test_outputs.shape[1]  # Get number of classes
-
-        outputs_softmax = softmax(test_outputs, dim=1)  # Softmax outputs along class dimension
-        outputs_argmax = outputs_softmax.argmax(dim=1)  # Argmax outputs along class dimension
-
-        # Compute dices
-        outputs_dices = [dice_score(outputs_argmax, truths, _class) for _class in range(num_classes)]
-
-        # Compute relational scores
-        outputs_relational_scores = relational_criterion.compute_metric(outputs_softmax, truths)
-
-        # Compute connected components per class
-        outputs_connected_components = [count_connected_components(outputs_argmax, _class) for _class in range(num_classes)]
-
-        # Print foreground dices
-        mean_output_dices = torch.mean(torch.stack(outputs_dices), dim=1)
-        print("Mean Dices: ", end="")
-        for mean_output_dice in mean_output_dices[1:]:
-            print("{:.4f}, ".format(mean_output_dice.item()), end="")
-        print("")
-
-        # Save validation metrics
-        mkdir(test_path)
-        test_metrics = { "all" : 
-            [
-                {
-                    _class : {
-                        "Dice" : outputs_dices[_class][test_index].item(),
-                        "Relational Loss" : outputs_relational_scores[test_index].item(),
-                        "Connected Components" : outputs_connected_components[_class][test_index]
-                    } for _class in range(num_classes)
-                } for test_index in range(test_outputs.shape[0])
-            ],
-            "mean": {
-                _class : {
-                    "Dice" : torch.mean(outputs_dices[_class]).item(),
-                    "Relational Loss" : torch.mean(outputs_relational_scores).item(),
-                    "Connected Components" : np.mean(outputs_connected_components[_class])
-                } for _class in range(num_classes)
-            }
-        }
-        with open(os.path.join(test_path, "summary.json"), 'w') as f:
-            json.dump(test_metrics, f, sort_keys=True, indent=4)
-
-
-        # Save test
-        for i, (test_image, test_targets, test_outputs) in enumerate(zip(all_test_images, 
-                                                                        truths, 
-                                                                        outputs_softmax)):
-            plot_output(test_image, test_targets, test_outputs, os.path.join(test_path, "test{}.png".format(i)))
-
-
 
 from datasets.clostob.clostob_dataset import CloStObDataset
 from spatial_loss import SpatialPriorErrorSegmentation
@@ -180,8 +111,6 @@ if __name__ == "__main__":
     # Testing experiments
     #dataset_size = 400
     for dataset_size in [10000]:
-        test_set_size = 30
-
         # Preparing the foreground
         fg_label = "T"
         fg_classes = [0, 1, 8]
@@ -244,43 +173,9 @@ if __name__ == "__main__":
                                                     lazy_load=True,
                                                     transform=transform,
                                                     target_transform=target_transform)
-                        
-                        # Preparing the rotated part of the test set
-                        rotated_fg_positions = deque(base_fg_positions)
-                        rotated_fg_positions.rotate(1)
-                        # Preparing the swap part of the test set
-                        swap_fg_positions = copy.copy(base_fg_positions)
-                        swap_fg_positions[1], swap_fg_positions[2] = swap_fg_positions[2], swap_fg_positions[1]
-                        # Preparing the distant part of the test set
-                        dist_fg_position = copy.copy(base_fg_positions)
-                        dist_fg_position[0] = (dist_fg_position[0][0], dist_fg_position[0][1]-0.1)
-                        dist_fg_position[1] = (dist_fg_position[1][0], dist_fg_position[1][1]+0.1)
-                        dist_fg_position[2] = (dist_fg_position[2][0], dist_fg_position[2][1]+0.1)
-                        # Preparing the size part of the test set
-                        # TODO
-                        # Preparing the affine-transform of the test set
-                        # TODO
-                        # Preparing test dataset
-                        test_dataset = torch.utils.data.ConcatDataset([
-                            CloStObDataset(base_dataset_name="fashion",
-                                            image_dimensions=image_dimensions,
-                                            size=test_set_size,
-                                            fg_classes=fg_classes,
-                                            fg_positions=fg_positions,
-                                            position_translation=position_translation,
-                                            position_noise=position_noise,
-                                            bg_classes=experimental_config["bg_classes"], # Background class from config
-                                            bg_amount=experimental_config["bg_amount"],
-                                            flattened=False,
-                                            lazy_load=False,
-                                            transform=transform,
-                                            target_transform=target_transform,
-                                            start_seed=dataset_size)
-                            for fg_positions in [base_fg_positions, rotated_fg_positions, swap_fg_positions, dist_fg_position]
-                        ])
             
                         # Run experiment
                         run_experiment(model_seed=model_seed, dataset_split_seed=dataset_split_seed,
-                                    dataset=train_dataset, test_dataset=test_dataset,
+                                    dataset=train_dataset, 
                                     relational_criterion=relational_criterion, crit_classes=crit_classes, alpha=alpha,
                                     deterministic=True, experiment_label=os.path.join("dataset_{}".format(dataset_size),experiment_label))
