@@ -302,11 +302,27 @@ if __name__ == '__main__':
     stride = 28
 
     # Preparing the foreground
-    fg_label = "T"
-    fg_classes = [0, 1, 8]
-    base_fg_positions = [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)]
-    position_translation=0.25
-    position_noise=0.1
+    fg_label = "H"  # Change here for other configurations. It's ugly, I know.
+
+    if fg_label == "T":  # Right triangle
+        fg_classes = [0, 1, 8]
+        base_fg_positions = [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)]
+        position_translation=0.5
+        position_noise=0
+        bg_bboxes = (0.4, 0.0, 0.9, 0.5)
+    elif fg_label == "D":
+        fg_classes = [0, 1, 8, 9]
+        base_fg_positions = [(0.5, 0.3), (0.7, 0.5), (0.5, 0.7), (0.3, 0.5)]
+        position_translation=0.5
+        position_noise=0
+        bg_bboxes = (0.25, 0.0, 0.75, 0.55)
+    elif fg_label == "H":
+        fg_classes = [0, 1]
+        base_fg_positions = [(0.5, 0.3), (0.5, 0.7)]
+        position_translation=0.5
+        position_noise=0
+        bg_bboxes = (0.25, 0.0, 0.75, 0.55)
+    else: raise ValueError("fg_label {} not recognized".format(fg_label))
 
     num_classes = len(fg_classes)
     classes = range(1,num_classes+1)
@@ -330,11 +346,11 @@ if __name__ == '__main__':
                                             size=test_set_size,
                                             fg_classes=fg_classes,
                                             fg_positions=base_fg_positions,
-                                            position_translation=0.0,
-                                            position_noise=0.0,
+                                            position_translation=position_translation,
+                                            position_noise=position_noise,
                                             bg_classes=[0], # Background class from config
                                             bg_amount=3,
-                                            bg_bboxes=(0.4, 0.0, 0.9, 0.5),
+                                            bg_bboxes=bg_bboxes,
                                             flattened=False,
                                             lazy_load=False,
                                             fine_segment=True,
@@ -360,17 +376,18 @@ if __name__ == '__main__':
 
     for i in range(10):
         #plt.subplot(131)
-        #image = (test_dataset[i]["image"][0] + 1.0)/2.0
-        #labelmap = test_dataset[i]["labelmap"]
-        #for label, color in zip(range(1,4), [plt.get_cmap("tab10")(1)[:3], plt.get_cmap("tab10")(2)[:3], plt.get_cmap("tab10")(3)[:3]]):
-        #    image = mark_boundaries(image, labelmap==label, color=color, mode="thick", background_label=0)
-        image = test_dataset.generate_meaningless_image(i, [0,1], False)["image"][0]
+        image = (test_dataset[i]["image"][0] + 1.0)/2.0
+        labelmap = test_dataset[i]["labelmap"]
+        for label, color in zip(range(1,4), [plt.get_cmap("tab10")(1)[:3], plt.get_cmap("tab10")(2)[:3], plt.get_cmap("tab10")(3)[:3]]):
+            if label > 1: break
+            image = mark_boundaries(image, labelmap==label, color=color, mode="thick", background_label=0)
+
         plt.tight_layout()
         plt.axis("off")
         plt.imshow(image, cmap="gray")
-        plt.show()
         #plt.savefig("./hard{}.eps".format(i), bbox_inches='tight')
-        #plt.savefig("./hard{}.png".format(i), bbox_inches='tight')
+        plt.savefig("./{}_strict{}.png".format(fg_label, i), bbox_inches='tight')
+
         #plt.subplot(132)
         #plt.imshow(test_dataset[i]["labelmap"])
         #for bbox in test_dataset[i]["bboxes"]:
@@ -382,4 +399,6 @@ if __name__ == '__main__':
         #plt.imshow(test_dataset[i]["bg_labelmap"])
         #print(test_dataset[i]["bboxes"])
 
+        #image = test_dataset.generate_meaningless_image(i, [0,1], False)["image"][0]
+        #plt.show()
 # %%

@@ -12,13 +12,13 @@ import copy
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, random_split
-from torch.nn.functional import softmax
 import torchvision as tv
 
 from train import train_model
 from unet import UNet
-from utils import targetToTensor, mkdir, plot_output
-from metrics import dice_score, count_connected_components
+from utils import targetToTensor
+from datasets.clostob.clostob_dataset import CloStObDataset
+from spatial_loss import SpatialPriorErrorSegmentation
 
 def run_experiment(model_seed, dataset_split_seed, dataset, relational_criterion, alpha, deterministic=False, max_val_set_size=3000, experiment_label=None):
     results_path = "results/results_seg"
@@ -80,9 +80,6 @@ def run_experiment(model_seed, dataset_split_seed, dataset, relational_criterion
                         results_path=results_path)
 
 
-from datasets.clostob.clostob_dataset import CloStObDataset
-from spatial_loss import SpatialPriorErrorSegmentation
-from collections import deque
 
 if __name__ == "__main__":
     # Testing experiments

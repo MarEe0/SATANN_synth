@@ -12,13 +12,14 @@ import copy
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, random_split
-from torch.nn.functional import softmax, cross_entropy
+from torch.nn.functional import cross_entropy
 import torchvision as tv
 
 from train import train_model
 from unet import UNet
-from utils import targetToTensor, mkdir, plot_output, multi_logical_or
-from metrics import dice_score, count_connected_components
+from utils import targetToTensor, multi_logical_or
+from datasets.clostob.clostob_dataset import CloStObDataset
+from spatial_loss import SpatialPriorErrorSegmentation
 
 
 class limitedCrossEntropyLoss(torch.nn.CrossEntropyLoss):
@@ -103,21 +104,32 @@ def run_experiment(model_seed, dataset_split_seed, dataset, relational_criterion
                         results_path=results_path)
 
 
-from datasets.clostob.clostob_dataset import CloStObDataset
-from spatial_loss import SpatialPriorErrorSegmentation
-from collections import deque
-
 if __name__ == "__main__":
     # Testing experiments
     #dataset_size = 400
     for dataset_size in [10000]:
         # Preparing the foreground
-        fg_label = "T"
-        fg_classes = [0, 1, 8]
-        base_fg_positions = [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)]
-        position_translation=0.5
-        position_noise=0
-        bg_bboxes = (0.4, 0.0, 0.9, 0.5)
+        fg_label = "D"  # Change here for other configurations. It's ugly, I know.
+
+        if fg_label == "T":  # Right triangle
+            fg_classes = [0, 1, 8]
+            base_fg_positions = [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)]
+            position_translation=0.5
+            position_noise=0
+            bg_bboxes = (0.4, 0.0, 0.9, 0.5)
+        elif fg_label == "D":
+            fg_classes = [0, 1, 8, 9]
+            base_fg_positions = [(0.5, 0.3), (0.7, 0.5), (0.5, 0.7), (0.3, 0.5)]
+            position_translation=0.5
+            position_noise=0
+            bg_bboxes = (0.25, 0.0, 0.75, 0.55)
+        elif fg_label == "H":
+            fg_classes = [0, 1]
+            base_fg_positions = [(0.5, 0.3), (0.5, 0.7)]
+            position_translation=0.5
+            position_noise=0
+            bg_bboxes = (0.25, 0.0, 0.75, 0.55)
+        else: raise ValueError("fg_label {} not recognized".format(fg_label))
 
         # Also setting the image dimensions in advance
         image_dimensions = [160,160]
@@ -143,10 +155,7 @@ if __name__ == "__main__":
         model_seeds = range(5)
         dataset_split_seeds = range(5)
         #alphas=[0, 0.2, 0.5, 0.7]
-        alphas = [0.5]
-        #experimental_configs = [{"label": fg_label + "_easy_noise", "bg_classes": [7], "bg_amount": 3},
-        #                        {"label": fg_label + "_hard_noise", "bg_classes": [0], "bg_amount": 3},
-        #                        {"label": fg_label + "_veryhard_noise", "bg_classes": [0,1,8], "bg_amount": 6}]
+        alphas = [0]
         experimental_configs = [{"label": fg_label + "_strict_noise", "bg_classes": [0], "bg_amount": 3}]
         
         # Running experiments
@@ -167,7 +176,7 @@ if __name__ == "__main__":
                                                     position_noise=position_noise,
                                                     bg_classes=experimental_config["bg_classes"], # Background class from config
                                                     bg_amount=experimental_config["bg_amount"],
-                                                    bg_bboxes=(0.4, 0.0, 0.9, 0.5),
+                                                    bg_bboxes=bg_bboxes,
                                                     fine_segment=True,
                                                     flattened=False,
                                                     lazy_load=True,
