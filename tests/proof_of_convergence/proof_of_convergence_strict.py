@@ -36,12 +36,27 @@ if __name__ == "__main__":
         mkdir(plot_path)
 
         # Preparing the foreground
-        fg_label = "T"
-        fg_classes = [0, 1, 8]
-        base_fg_positions = [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)]
-        position_translation=0.5
-        position_noise=0.0
-        bg_bboxes = (0.4, 0.0, 0.9, 0.5)
+        fg_label = "T"  # Change here for other configurations. It's ugly, I know.
+
+        if fg_label == "T":  # Right triangle
+            fg_classes = [0, 1, 8]
+            base_fg_positions = [(0.65, 0.3), (0.65, 0.7), (0.35, 0.7)]
+            position_translation=0.5
+            position_noise=0
+            bg_bboxes = (0.4, 0.0, 0.9, 0.5)
+        elif fg_label == "D":
+            fg_classes = [0, 1, 8, 9]
+            base_fg_positions = [(0.5, 0.3), (0.7, 0.5), (0.5, 0.7), (0.3, 0.5)]
+            position_translation=0.5
+            position_noise=0
+            bg_bboxes = (0.25, 0.0, 0.75, 0.55)
+        elif fg_label == "H":
+            fg_classes = [0, 1]
+            base_fg_positions = [(0.5, 0.3), (0.5, 0.7)]
+            position_translation=0.5
+            position_noise=0
+            bg_bboxes = (0.25, 0.0, 0.75, 0.55)
+        else: raise ValueError("fg_label {} not recognized".format(fg_label))
 
         num_classes = len(fg_classes)
         classes = range(1,num_classes+1)
@@ -85,7 +100,7 @@ if __name__ == "__main__":
             # PROOF OF CONVERGENCE:
             #   Getting test-time precision and recall per class for all inits
             initialization_paths = sorted(list(glob(os.path.join(base_dataset_path, experimental_config["label"] + "*"))))
-            initialization_paths = [item for item in initialization_paths if item[-2:] != ".5"] # skipping SATANN examples (where alpha > 0)
+            initialization_paths = [item for item in initialization_paths if item[-2:] == "a0"] # skipping SATANN examples (where alpha > 0)
             precisions = {_class : None for _class in classes}
             recalls = {_class : None for _class in classes}
             model_has_converged = [False for _ in range(len(initialization_paths))]
@@ -127,7 +142,8 @@ if __name__ == "__main__":
                     model_has_converged[init_idx] = torch.mean(class_precisions).item() > 0.5 and torch.mean(class_recalls).item() > 0.5
 
                     # Adding to mean only if converged
-                    if model_has_converged[init_idx]:
+                    #if model_has_converged[init_idx]:
+                    if True:
                         if precisions[_class] is None:
                             precisions[_class] = class_precisions
                         else:
@@ -171,7 +187,7 @@ if __name__ == "__main__":
                     plt.imshow(rgb_image)
                     plt.axis("off")
                     plt.savefig(os.path.join(plot_path, model_label+convergence_marker, "test{}.png".format(test_idx)), bbox_inches="tight")
-                    plt.savefig(os.path.join(plot_path, model_label+convergence_marker, "test{}.eps".format(test_idx)), bbox_inches="tight")
+                    #plt.savefig(os.path.join(plot_path, model_label+convergence_marker, "test{}.eps".format(test_idx)), bbox_inches="tight")
                     plt.clf()
 
             print("")
