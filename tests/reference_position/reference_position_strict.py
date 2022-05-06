@@ -88,7 +88,7 @@ if __name__ == "__main__":
                                             target_transform=target_transform,
                                             start_seed=100000)
             # Getting results for each reference class shift
-            for reference_class in [2]:
+            for reference_class in [int(sys.argv[1])]:
                 # Note: CSO functions take "which" class, like '0' for shirt or '8' for bag
                 # While this test takes 1,2,3, hence the need for conversion
                 converted_class = fg_classes[reference_class-1]
@@ -127,40 +127,6 @@ if __name__ == "__main__":
 
                     outputs_softmax = softmax(outputs, dim=1)  # Softmax outputs along class dimension
                     outputs_argmax = outputs_softmax.argmax(dim=1)  # Argmax outputs along class dimension
-
-                    import matplotlib.pyplot as plt
-                    from skimage.segmentation import mark_boundaries
-                    for i, (item_pair, anch, output) in enumerate(zip(shifts_set, anchors_set, outputs_argmax)):
-                        if anch == (80,120):
-                            image = (item_pair["image"].squeeze(0).detach().cpu().numpy() + 1.0)/2.0
-                            for label, color in zip(range(1,4), [plt.get_cmap("tab10")(1)[:3], plt.get_cmap("tab10")(2)[:3], plt.get_cmap("tab10")(3)[:3]]):
-                                if label > 1: break
-                                image = mark_boundaries(image, item_pair["labelmap"]==label, color=color, mode="thick", background_label=0)
-                            plt.imshow(image, cmap="gray")
-                            ax = plt.gca()
-                            ax.axes.xaxis.set_visible(False)
-                            ax.axes.yaxis.set_visible(False)
-                            plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/{}_{}.png".format(i, anch), bbox_inches="tight")
-                            plt.clf()
-
-                            target = item_pair["labelmap"]
-                            target[target != 1] = 0
-                            plt.imshow(target, cmap="tab10", vmax=9)
-                            ax = plt.gca()
-                            ax.axes.xaxis.set_visible(False)
-                            ax.axes.yaxis.set_visible(False)
-                            plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/{}_{}_labelmap.png".format(i, anch), bbox_inches="tight")
-                            plt.clf()
-                            
-                            output[output != 1] = 0
-                            plt.imshow(output, cmap="tab10", vmax=9)
-                            ax = plt.gca()
-                            ax.axes.xaxis.set_visible(False)
-                            ax.axes.yaxis.set_visible(False)
-                            plt.savefig("/home/mriva/Recherche/PhD/SATANN/SATANN_synth/{}_{}_output.png".format(i, anch), bbox_inches="tight")
-                            plt.clf()
-                    
-                    sys.exit()
                 
                     # computing metrics for all classes
                     for _class in crit_classes:
