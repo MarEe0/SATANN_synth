@@ -116,7 +116,7 @@ if __name__ == "__main__":
             # PROOF OF CONVERGENCE:
             #   Getting test-time precision and recall per class for all inits
             initialization_paths = sorted(list(glob(os.path.join(base_dataset_path, experimental_config["label"] + "*"))))
-            initialization_paths = [item for item in initialization_paths if item[-2:] != ".5"] # skipping SATANN examples (where alpha > 0)
+            initialization_paths = [item for item in initialization_paths if item[-2:] == "a0"] # skipping SATANN examples (where alpha > 0)
             precisions = {_class : None for _class in classes}
             recalls = {_class : None for _class in classes}
             nonconv_precisions = {_class : None for _class in classes}

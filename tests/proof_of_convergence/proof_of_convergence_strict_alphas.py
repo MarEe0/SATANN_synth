@@ -87,14 +87,14 @@ if __name__ == "__main__":
             for alpha in alphas:
                 # PROOF OF CONVERGENCE:
                 #   Getting test-time precision and recall per class for all inits per alpha
-                initialization_paths = sorted(list(glob(os.path.join(base_dataset_path, experimental_config["label"] + "*{}".format(alpha)))))
-                initialization_paths = [item for item in initialization_paths if item[-2:] != ".5"] # skipping SATANN examples (where alpha > 0)
+                initialization_paths = sorted(list(glob(os.path.join(base_dataset_path, experimental_config["label"] + "*a{}".format(alpha)))))
+                #initialization_paths = [item for item in initialization_paths if item[-2:] == "a0"] # skipping SATANN examples (where alpha > 0)
                 precisions = {_class : None for _class in classes}
                 recalls = {_class : None for _class in classes}
                 model_has_converged = [False for _ in range(len(initialization_paths))]
                 for init_idx, initialization_path in enumerate(initialization_paths):
                     # skipping SATANN examples (where alpha > 0)
-                    if initialization_path[-2:] == ".5": continue
+                    #if initialization_path[-2:] == ".5": continue
 
                     # Preparing the data loader
                     data_loader = torch.utils.data.DataLoader(test_dataset, batch_size=4, num_workers=2)
