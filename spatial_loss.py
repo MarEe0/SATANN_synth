@@ -4,9 +4,15 @@ Author
 ------
  * Mateus Riva (mateus.riva@telecom-paris.fr)
 """
+from math import isnan
+
 import torch
 from torch import nn
+from torch.nn.functional import conv2d
 
+"""=================================================
+            CENTRAL SPATIAL PRIOR ERROR
+================================================="""
 
 class SpatialPriorError(nn.Module):
     def __init__(self, relations):
@@ -181,7 +187,7 @@ class SpatialPriorErrorDetection(SpatialPriorError):
         return error
     
     def compute_metric(self, output):
-        """Like forward, but it return the value per object"""
+        """Like forward, but it returns the value per object"""
         # Adding a dummy "background" centroid
         centroids_y = torch.zeros((output.size(0), output.size(1)+1))
         centroids_x = torch.zeros((output.size(0), output.size(1)+1))
@@ -191,3 +197,138 @@ class SpatialPriorErrorDetection(SpatialPriorError):
         # Aggregating the errors **over the relations only**
         error = dy_all.sum(dim=0) + dx_all.sum(dim=0)
         return error
+
+"""=================================================
+             RELATIONAL MAP OVERLAP
+================================================="""
+
+class RelationalMapOverlap(nn.Module):
+    def __init__(self, relations, num_classes=None, crit_classes=None, device="cpu") -> None:
+        """Relational Map Overlap loss class.
+        
+        Given a set of relationships, defined as a triplet `source, target, kernel`,
+        compute the RMO error for a given input labelmap."""
+        super(RelationalMapOverlap, self).__init__()
+
+        self.relations = relations
+        self.device = device
+
+        self.rel_sources = [relation[0] for relation in self.relations]
+        self.rel_targets = [relation[1] for relation in self.relations]
+        self.rel_kernels = [relation[2] for relation in self.relations]
+
+        # A division epsilon for empty maps
+        self.epsilon = 1e-7
+
+        # Getting criterion classes list
+        self.crit_classes = crit_classes
+        if crit_classes is not None:
+            self.uncrit_classes = [x for x in range(num_classes+1) if x not in crit_classes]
+
+    def forward(self, output, truths=None):
+        """Compute forward pass of RMO loss.
+        
+        Output should be of format (B,C,H,W)"""
+        # If only a few classes are part of the criterion, reassemble the full output
+        if self.crit_classes is not None:
+            full_output = torch.empty((output.shape[0], max(max(self.crit_classes), max(self.uncrit_classes))+1, *output.shape[2:]), device=output.device)
+            for i, crit_class in enumerate(self.crit_classes):
+                full_output[:,crit_class] = output[:,i]
+            for i, uncrit_class in enumerate(self.uncrit_classes):
+                full_output[:,uncrit_class] = (truths==uncrit_class).double()
+        else:
+            full_output = output
+
+        # Convolve all sources with their respective kernels        
+        rel_maps = torch.stack([conv2d(
+                                    full_output[:, source].unsqueeze(1),    # Output maps of class `source` (B, 1, H, W)
+                                    kernel.view(1,1, *kernel.size()),       # Kernel of relationship (1,1,H',W')
+                                    padding="same")                         # Padding as same
+                                for source, _, kernel in self.relations]
+                               ).squeeze().permute(1,0,2,3)                 # Output of each conv is (B,1,H,W); output of stack is (R,B,1,H,W); final is (B,R,H,W)
+
+        # Normalise all relationship maps to [0..1]
+        #   Note: this normalisation is not perfect, spec. due to shape effects as discussed in the paper, but it should
+        #   work for now
+        # Computing extrema per map (views are for guaranteeing dimensional collapse); conversion is for division
+        min_per_map = rel_maps.view(rel_maps.size(0),rel_maps.size(1),-1).min(dim=2)[0].to(dtype=torch.float)
+        max_per_map = rel_maps.view(rel_maps.size(0),rel_maps.size(1),-1).max(dim=2)[0].to(dtype=torch.float)
+
+        rel_maps = torch.div(
+            torch.sub(
+                rel_maps.view(*max_per_map.size(), -1).permute(2, 0, 1),min_per_map),
+            max_per_map-min_per_map+self.epsilon
+        ).permute(1,2,0).view(rel_maps.size())
+
+        # Remove the source probability map for all relational maps
+        rel_maps = rel_maps.sub_(full_output[:, self.rel_sources]).clamp_min_(0)
+
+        # Intersect all maps with their respective targets
+        rel_intersections = rel_maps * full_output[:, self.rel_targets]
+
+        # Computing each map sum-score and dividing it by the overall size of the target object
+        rel_sums = torch.sum(rel_intersections,dim=[2,3])
+        target_sums = torch.sum(full_output[:, self.rel_targets], dim=[2,3])
+        rel_scores = torch.div(rel_sums,target_sums)
+
+        if isnan(torch.div(torch.sum(1-rel_scores), rel_scores.nelement()).item()):
+            raise ValueError("NaN in Spatial Map Loss", "RMisNaN")
+
+        # Computing final loss as the average of the sum of the complement of the scores
+        #if self.reduction == "mean":
+        #    return torch.mean(1-rel_scores)
+        #if self.reduction == "sum":
+        #    return torch.sum(1-rel_scores)
+        #if self.reduction == "none" or self.reduction is None:
+        #    return 1-rel_scores
+        return torch.sum(1-rel_scores)
+
+    def compute_metric(self, output, truths=None):
+        """Same as the forward pass, but returns the value per object."""
+        # If only a few classes are part of the criterion, reassemble the full output
+        if self.crit_classes is not None:
+            full_output = torch.empty((output.shape[0], max(max(self.crit_classes), max(self.uncrit_classes))+1, *output.shape[2:]), device=output.device)
+            for i, crit_class in enumerate(self.crit_classes):
+                full_output[:,crit_class] = output[:,i]
+            for i, uncrit_class in enumerate(self.uncrit_classes):
+                full_output[:,uncrit_class] = (truths==uncrit_class).double()
+        else:
+            full_output = output
+
+        # Convolve all sources with their respective kernels
+        rel_maps = torch.stack([conv2d(
+                                    full_output[:, source].unsqueeze(1),    # Output maps of class `source` (B, 1, H, W)
+                                    kernel.view(1,1, *kernel.size()),       # Kernel of relationship (1,1,H',W')
+                                    padding="same")                         # Padding as same
+                                for source, _, kernel in self.relations]
+                               ).squeeze().permute(1,0,2,3)                 # Output of each conv is (B,1,H,W); output of stack is (R,B,1,H,W); final is (B,R,H,W)
+
+        # Normalise all relationship maps to [0..1]
+        #   Note: this normalisation is not perfect, spec. due to shape effects as discussed in the paper, but it should
+        #   work for now
+        # Computing extrema per map (views are for guaranteeing dimensional collapse); conversion is for division
+        min_per_map = rel_maps.view(rel_maps.size(0),rel_maps.size(1),-1).min(dim=2)[0].to(dtype=torch.float)
+        max_per_map = rel_maps.view(rel_maps.size(0),rel_maps.size(1),-1).max(dim=2)[0].to(dtype=torch.float)
+
+        rel_maps = torch.div(
+            torch.sub(
+                rel_maps.view(*max_per_map.size(), -1).permute(2, 0, 1),min_per_map),
+            max_per_map-min_per_map+self.epsilon
+        ).permute(1,2,0).view(rel_maps.size())
+
+        # Remove the source probability map for all relational maps
+        rel_maps = rel_maps.sub_(full_output[:, self.rel_sources]).clamp_min_(0)
+
+        # Intersect all maps with their respective targets
+        rel_intersections = rel_maps * full_output[:, self.rel_targets]
+
+        # Computing each map sum-score and dividing it by the overall size of the target object
+        rel_sums = torch.sum(rel_intersections,dim=[2,3])
+        target_sums = torch.sum(full_output[:, self.rel_targets], dim=[2,3])
+        rel_scores = torch.div(rel_sums,target_sums)
+
+        if isnan(torch.div(torch.sum(1-rel_scores), rel_scores.nelement()).item()):
+            raise ValueError("NaN in Spatial Map Loss", "RMisNaN")
+
+        # Returning metric per object
+        return torch.sum(1-rel_scores, dim=0)

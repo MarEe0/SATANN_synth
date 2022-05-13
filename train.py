@@ -6,6 +6,7 @@ Authors
 """
 import os
 from copy import deepcopy
+import re
 import time
 import json
 
@@ -17,7 +18,7 @@ from torch.nn.functional import softmax
 from metrics import dice_score, count_connected_components, jaccard
 from utils import mkdir, plot_output, plot_output_det
 
-def train_model(model, optimizer, scheduler, criterion, relational_criterion, target_key, alpha, data_loaders, metrics=None, max_epochs=100, loss_strength=1, clip_max_norm=0, training_label=None, results_path=None, vals_to_plot=5):
+def train_model(model, optimizer, scheduler, criterion, relational_criterions, relational_loss_criterion_idx, target_key, alpha, data_loaders, metrics=None, max_epochs=100, loss_strength=1, clip_max_norm=0, training_label=None, results_path=None, vals_to_plot=5):
     """Trains a neural network model until specified criteria are met.
 
     This function is a generic PyTorch NN training loop.
@@ -32,8 +33,10 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, ta
         Scheduler to be used for training.
     criterion : torch.nn.Loss
         Loss function class to be used for training.
-    relational_criterion : `spatial_loss.GraphSpatialLoss`
-        The relational loss object (needed even for the baseline for computing metrics).
+    relational_criterions : list of `spatial_loss` objects
+        The relational loss objects (needed even for the baseline for computing metrics).
+    relational_loss_criterion_idx : `int` or list of `int`
+        Which of the `relational_criterions` to use to compute relational loss.
     target_key : `str`, one of `"labelmap"`, `"bboxes"`
         The key to the wanted target in the data dictionary. `"labelmap"` is for segmentation,
         while `"bboxes"` is for detection.
@@ -58,6 +61,10 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, ta
         The trained network model.
     """
     device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    # If relational_criterion_loss_idx is an int, make it a single item list
+    if type(relational_loss_criterion_idx) == int:
+        relational_loss_criterion_idx = [relational_loss_criterion_idx]
 
     # Default training label: timestamp of start of training
     if training_label is None:
@@ -116,7 +123,7 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, ta
                     else:
                         crit_loss = torch.tensor(0)
                     if alpha > 0:
-                        rel_loss = relational_criterion(outputs, targets)
+                        rel_loss = torch.sum([relational_criterions[crit_idx](outputs, targets) for crit_idx in relational_loss_criterion_idx])
                     else:
                         rel_loss = torch.tensor(0)
                     loss = ((1-alpha)*crit_loss + (alpha)*rel_loss) * loss_strength
@@ -196,9 +203,9 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, ta
 
             # Compute relational scores
             if "dice" in metrics or "cc" in metrics:
-                outputs_relational_scores = relational_criterion.compute_metric(outputs_softmax, all_val_targets)
+                outputs_relational_scores = [relational_criterion.compute_metric(outputs_softmax, all_val_targets) for relational_criterion in relational_criterions]
             else:
-                outputs_relational_scores = relational_criterion.compute_metric(all_val_outputs)
+                outputs_relational_scores = [relational_criterion.compute_metric(all_val_outputs) for relational_criterion in relational_criterions]
 
             # Save validation metrics
             epoch_validation_path = os.path.join(validation_path, "epoch_{}".format(epoch))
@@ -214,7 +221,7 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterion, ta
                 [
                     {
                         _class : {
-                            "Relational Loss" : outputs_relational_scores[val_index].item(),
+                            "Relational Losses" : [outputs_relational_score[val_index].item() for outputs_relational_score in outputs_relational_scores],
                         } for _class in range(num_classes)
                     } for val_index in range(all_val_outputs.shape[0])
                 ],

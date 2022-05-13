@@ -6,8 +6,7 @@ Author
 """
 import time
 import os
-import json
-import copy
+from math import pi
 
 import numpy as np
 import torch
@@ -17,9 +16,9 @@ import torchvision as tv
 
 from train import train_model
 from unet import UNet
-from utils import targetToTensor, multi_logical_or
+from utils import targetToTensor, multi_logical_or, create_relational_kernel
 from datasets.clostob.clostob_dataset import CloStObDataset
-from spatial_loss import SpatialPriorErrorSegmentation
+from spatial_loss import SpatialPriorErrorSegmentation, RelationalMapOverlap
 
 
 class limitedCrossEntropyLoss(torch.nn.CrossEntropyLoss):
@@ -41,7 +40,7 @@ class limitedCrossEntropyLoss(torch.nn.CrossEntropyLoss):
                              label_smoothing=self.label_smoothing)
 
 
-def run_experiment(model_seed, dataset_split_seed, dataset, relational_criterion, alpha, crit_classes=None, deterministic=False, max_val_set_size=3000, experiment_label=None):
+def run_experiment(model_seed, dataset_split_seed, dataset, relational_criterions, relational_criterion_idx, alpha, crit_classes=None, deterministic=False, max_val_set_size=3000, experiment_label=None):
     results_path = "results/results_strict"
 
     # Default training label: timestamp of start of training
@@ -99,7 +98,7 @@ def run_experiment(model_seed, dataset_split_seed, dataset, relational_criterion
         criterion = limitedCrossEntropyLoss(crit_classes)
 
     # Training
-    model = train_model(model, optimizer, scheduler, criterion, relational_criterion, "labelmap", alpha, data_loaders,
+    model = train_model(model, optimizer, scheduler, criterion, relational_criterions, relational_criterion_idx, "labelmap", alpha, data_loaders,
                         max_epochs=100, metrics=["dice","cc"], clip_max_norm=1, training_label=experiment_label,
                         results_path=results_path)
 
@@ -107,9 +106,13 @@ def run_experiment(model_seed, dataset_split_seed, dataset, relational_criterion
 if __name__ == "__main__":
     # Testing experiments
     #dataset_size = 400
-    for dataset_size in [10000]:
+    for dataset_size in [1000]:
+        # Setting the image dimensions in advance
+        image_dimensions = [160,160]
+        slack = 14  # Slack for the relational map (should be set to half of an object's size)
+
         # Preparing the foreground
-        fg_label = "H"  # Change here for other configurations. It's ugly, I know.
+        fg_label = "T"  # Change here for other configurations. It's ugly, I know.
 
         if fg_label == "T":  # Right triangle
             fg_classes = [0, 1, 8]
@@ -118,9 +121,11 @@ if __name__ == "__main__":
             position_noise=0
             bg_bboxes = (0.4, 0.0, 0.9, 0.5)
             graph_relations = [[1, 2, 0, -0.4],
-                               [1, 3, 0.3, -0.4],
-                               [2, 3, 0.3, 0]]   
-        elif fg_label == "D":
+                               [1, 3, 0.3, -0.4]]
+                               #[2, 3, 0.3, 0]]  # Commented out because 2 and 3 are not crit_classes
+            map_relations = [(2, 1, create_relational_kernel(distance=0.4*image_dimensions[0], angle=pi, distance_slack=slack)),
+                             (3, 1, create_relational_kernel(distance=0.5*image_dimensions[0], angle=(7/6)*pi, distance_slack=slack))]  # if image dimensions is not square this will bug
+        elif fg_label == "D":  # Diamond
             fg_classes = [0, 1, 8, 9]
             base_fg_positions = [(0.5, 0.3), (0.7, 0.5), (0.5, 0.7), (0.3, 0.5)]
             position_translation=0.5
@@ -132,24 +137,25 @@ if __name__ == "__main__":
                                [2, 3, 0.2, -0.2],
                                [2, 4, 0.4, 0.0],
                                [3, 4, 0.2, 0.2]] 
-        elif fg_label == "H":
+            # TODO: D map relations
+        elif fg_label == "H":  # Horizontal line
             fg_classes = [0, 1]
             base_fg_positions = [(0.5, 0.3), (0.5, 0.7)]
             position_translation=0.5
             position_noise=0
             bg_bboxes = (0.25, 0.0, 0.75, 0.55)
             graph_relations = [[1, 2, 0, -0.4]]
+            # TODO: H map relations
         else: raise ValueError("fg_label {} not recognized".format(fg_label))
 
-        # Also setting the image dimensions in advance
-        image_dimensions = [160,160]
-        
         # Preparing the limited cross entropy targets
         crit_classes = [0,1]  # BG and first class (shirts)
 
         # Preparing the relations
-        relational_criterion = SpatialPriorErrorSegmentation(graph_relations, image_dimensions=image_dimensions,
-                                                             num_classes=len(fg_classes), crit_classes=crit_classes)
+        relational_criterions = [SpatialPriorErrorSegmentation(graph_relations, image_dimensions=image_dimensions,
+                                                             num_classes=len(fg_classes), crit_classes=crit_classes),
+                                RelationalMapOverlap(map_relations, num_classes=len(fg_classes), crit_classes=crit_classes)]
+        relational_criterion_idx = [1]
 
         # Preparing dataset transforms:
         transform = tv.transforms.Compose(                                  # For the images:
@@ -193,5 +199,5 @@ if __name__ == "__main__":
                         # Run experiment
                         run_experiment(model_seed=model_seed, dataset_split_seed=dataset_split_seed,
                                     dataset=train_dataset, 
-                                    relational_criterion=relational_criterion, crit_classes=crit_classes, alpha=alpha,
+                                    relational_criterions=relational_criterions, relational_criterion_idx=relational_criterion_idx, crit_classes=crit_classes, alpha=alpha,
                                     deterministic=True, experiment_label=os.path.join("dataset_{}".format(dataset_size),experiment_label))
