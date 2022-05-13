@@ -117,13 +117,15 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterions, r
                 with torch.set_grad_enabled(phase == "train"):
                     # Forward
                     outputs = model(images)
+                    outputs_softmax = softmax(outputs, dim=1)
                     # Losses
                     if alpha < 1:
-                        crit_loss = criterion(outputs, targets)
+                        crit_loss = criterion(outputs, targets)  # Most criterions (like cross entropy) expect raw outputs
                     else:
                         crit_loss = torch.tensor(0)
                     if alpha > 0:
-                        rel_loss = torch.sum([relational_criterions[crit_idx](outputs, targets) for crit_idx in relational_loss_criterion_idx])
+                        # Relational losses expect softmaxed outputs
+                        rel_loss = torch.sum([relational_criterions[crit_idx](outputs_softmax, targets) for crit_idx in relational_loss_criterion_idx])
                     else:
                         rel_loss = torch.tensor(0)
                     loss = ((1-alpha)*crit_loss + (alpha)*rel_loss) * loss_strength
