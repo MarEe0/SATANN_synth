@@ -331,4 +331,4 @@ class RelationalMapOverlap(nn.Module):
             raise ValueError("NaN in Spatial Map Loss", "RMisNaN")
 
         # Returning metric per object
-        return torch.sum(1-rel_scores, dim=0)
+        return torch.sum(1-rel_scores, dim=1)
