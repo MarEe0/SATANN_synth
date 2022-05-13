@@ -106,7 +106,7 @@ def run_experiment(model_seed, dataset_split_seed, dataset, relational_criterion
 if __name__ == "__main__":
     # Testing experiments
     #dataset_size = 400
-    for dataset_size in [1000]:
+    for dataset_size in [10000]:
         # Setting the image dimensions in advance
         image_dimensions = [160,160]
         slack = 14  # Slack for the relational map (should be set to half of an object's size)
@@ -154,7 +154,7 @@ if __name__ == "__main__":
         # Preparing the relations
         relational_criterions = [SpatialPriorErrorSegmentation(graph_relations, image_dimensions=image_dimensions,
                                                              num_classes=len(fg_classes), crit_classes=crit_classes),
-                                RelationalMapOverlap(map_relations, num_classes=len(fg_classes), crit_classes=crit_classes)]
+                                RelationalMapOverlap(map_relations, num_classes=len(fg_classes), crit_classes=crit_classes, device="cuda")]
         relational_criterion_idx = [1]
 
         # Preparing dataset transforms:

@@ -210,12 +210,13 @@ class RelationalMapOverlap(nn.Module):
         compute the RMO error for a given input labelmap."""
         super(RelationalMapOverlap, self).__init__()
 
-        self.relations = relations
         self.device = device
 
-        self.rel_sources = [relation[0] for relation in self.relations]
-        self.rel_targets = [relation[1] for relation in self.relations]
-        self.rel_kernels = [relation[2] for relation in self.relations]
+        # Dismantle the tuple list to operate on
+        self.rel_sources = [relation[0] for relation in relations]
+        self.rel_targets = [relation[1] for relation in relations]
+        self.rel_kernels = [relation[2].to(device) for relation in relations]  # Convert to device
+        self.relations = [(source, target, kernel) for source, target, kernel in zip(self.rel_sources, self.rel_targets, self.rel_kernels)]  # Reassemble the tuple list
 
         # A division epsilon for empty maps
         self.epsilon = 1e-7

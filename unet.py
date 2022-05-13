@@ -34,6 +34,9 @@ class UNet(nn.Module):
     def __init__(self, input_channels, output_channels):
         super().__init__()
 
+        self.input_channels = input_channels
+        self.output_channels = output_channels
+
         self.dconv_down1 = double_conv(input_channels, 64)
         self.dconv_down2 = double_conv(64, 128)
         self.dconv_down3 = double_conv(128, 256)
