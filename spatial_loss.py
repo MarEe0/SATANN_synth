@@ -246,7 +246,7 @@ class RelationalMapOverlap(nn.Module):
                                     kernel.view(1,1, *kernel.size()),       # Kernel of relationship (1,1,H',W')
                                     padding="same")                         # Padding as same
                                 for source, _, kernel in self.relations]
-                               ).squeeze().permute(1,0,2,3)                 # Output of each conv is (B,1,H,W); output of stack is (R,B,1,H,W); final is (B,R,H,W)
+                               ).squeeze(2).permute(1,0,2,3)                 # Output of each conv is (B,1,H,W); output of stack is (R,B,1,H,W); final is (B,R,H,W)
 
         # Normalise all relationship maps to [0..1]
         #   Note: this normalisation is not perfect, spec. due to shape effects as discussed in the paper, but it should
@@ -302,7 +302,7 @@ class RelationalMapOverlap(nn.Module):
                                     kernel.view(1,1, *kernel.size()),       # Kernel of relationship (1,1,H',W')
                                     padding="same")                         # Padding as same
                                 for source, _, kernel in self.relations]
-                               ).squeeze().permute(1,0,2,3)                 # Output of each conv is (B,1,H,W); output of stack is (R,B,1,H,W); final is (B,R,H,W)
+                               ).squeeze(2).permute(1,0,2,3)                 # Output of each conv is (B,1,H,W); output of stack is (R,B,1,H,W); final is (B,R,H,W)
 
         # Normalise all relationship maps to [0..1]
         #   Note: this normalisation is not perfect, spec. due to shape effects as discussed in the paper, but it should
