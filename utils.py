@@ -159,7 +159,7 @@ def plot_output_det(image, target, outputs, dest_path=None):
         plt.clf()
         plt.close()
 
-def create_relational_kernel(distance, angle, distance_slack=10, aperture=math.pi/12):
+def create_relational_kernel(distance, angle, distance_slack=10, aperture=math.pi/10):
     """Creates a relational kernel for a given distance and relation angle with specified aperture.
 
     NOTE: since kernels are square, directions that are not square (i.e. multiples of `pi/2`) will not be fully
