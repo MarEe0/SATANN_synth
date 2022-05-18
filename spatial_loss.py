@@ -268,7 +268,7 @@ class RelationalMapOverlap(nn.Module):
         # Computing each map sum-score and dividing it by the overall size of the target object
         rel_sums = torch.sum(rel_intersections,dim=[2,3])
         target_sums = torch.sum(full_output[:, self.rel_targets], dim=[2,3])
-        rel_scores = torch.div(rel_sums,target_sums)
+        rel_scores = torch.div(rel_sums,target_sums + self.epsilon)
 
         if isnan(torch.div(torch.sum(1-rel_scores), rel_scores.nelement()).item()):
             raise ValueError("NaN in Spatial Map Loss", "RMisNaN")
