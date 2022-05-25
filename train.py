@@ -16,7 +16,7 @@ import numpy as np
 import torch
 from torch.nn.functional import softmax
 
-from metrics import dice_score, count_connected_components, jaccard
+from metrics import dice_score, count_connected_components, jaccard, precision, recall
 from utils import mkdir, plot_output, plot_output_det
 
 def train_model(model, optimizer, scheduler, criterion, relational_criterions, relational_loss_criterion_idx, target_key, alpha, data_loaders, metrics=None, max_epochs=100, loss_strength=1, clip_max_norm=0, training_label=None, results_path=None, vals_to_plot=5):
@@ -99,7 +99,10 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterions, r
 
         # Lists for storing validation metrics
         images_to_plot, targets_to_plot, outputs_to_plot = [], [], []                         # Visual results
-        if "dice" in metrics: outputs_dices = [[] for _ in range(num_classes)]                # Segmentation metrics
+        if "dice" in metrics:                                                                 # Segmentation metrics
+            outputs_dices = [[] for _ in range(num_classes)]     
+            outputs_precisions = [[] for _ in range(num_classes)]     
+            outputs_recalls = [[] for _ in range(num_classes)]                
         if "cc" in metrics: outputs_connected_components = [[] for _ in range(num_classes)]   # Segmentation metrics
         if "iou" in metrics: outputs_ious = [[] for _ in range(num_classes)]                  # Detection metrics
         outputs_relational_scores = [[] for _ in range(num_relational)]                       # Relational metrics
@@ -184,6 +187,8 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterions, r
                         if "dice" in metrics:
                             for _class in range(num_classes):
                                 outputs_dices[_class] = outputs_dices[_class] + [dice_score(outputs_argmax, targets, _class)]
+                                outputs_precisions[_class] = outputs_precisions[_class] + [precision(outputs_argmax, targets, _class)]
+                                outputs_recalls[_class] = outputs_recalls[_class] + [recall(outputs_argmax, targets, _class)]
                         if "cc" in metrics:
                             for _class in range(num_classes):
                                 outputs_connected_components[_class] = outputs_connected_components[_class] + [count_connected_components(outputs_argmax, _class)]
@@ -216,6 +221,8 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterions, r
             # Collapse metric lists (from N/B x B to N)
             if "dice" in metrics: 
                 outputs_dices = [torch.cat(outputs_dices[_class]) for _class in range(num_classes)]
+                outputs_precisions = [torch.cat(outputs_precisions[_class]) for _class in range(num_classes)]
+                outputs_recalls = [torch.cat(outputs_recalls[_class]) for _class in range(num_classes)]
             if "cc" in metrics: 
                 outputs_connected_components = [list(chain.from_iterable(outputs_connected_components[_class])) for _class in range(num_classes)]
             if "iou" in metrics:
@@ -227,6 +234,8 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterions, r
                 # Compute dices
                 # Print foreground dices
                 mean_output_dices = torch.mean(torch.stack(outputs_dices), dim=1)
+                mean_output_precisions = torch.mean(torch.stack(outputs_precisions), dim=1)
+                mean_output_recalls = torch.mean(torch.stack(outputs_recalls), dim=1)
                 print("Mean foreground Dices: ", end="")
                 for mean_output_dice in mean_output_dices[1:]:
                     print("{:.4f}, ".format(mean_output_dice.item()), end="")
@@ -268,8 +277,12 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterions, r
             if "dice" in metrics:
                 for _class in range(num_classes):
                     validation_metrics["mean"][_class]["Dice"] = torch.mean(outputs_dices[_class]).item()
+                    validation_metrics["mean"][_class]["Precision"] = torch.mean(outputs_precisions[_class]).item()
+                    validation_metrics["mean"][_class]["Recall"] = torch.mean(outputs_recalls[_class]).item()
                     for val_index in range(validation_count):
                         validation_metrics["all"][val_index][_class]["Dice"] = outputs_dices[_class][val_index].item()
+                        validation_metrics["all"][val_index][_class]["Precision"] = outputs_precisions[_class][val_index].item()
+                        validation_metrics["all"][val_index][_class]["Recall"] = outputs_recalls[_class][val_index].item()
             # If cc is one of the validation metrics:
             if "cc" in metrics:
                 for _class in range(num_classes):
