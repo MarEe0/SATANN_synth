@@ -106,7 +106,7 @@ def run_experiment(model_seed, dataset_split_seed, dataset, relational_criterion
 if __name__ == "__main__":
     # Testing experiments
     #dataset_size = 400
-    for dataset_size in [10000]:
+    for dataset_size in [1000]:
         # Setting the image dimensions in advance
         image_dimensions = [160,160]
         slack = 14  # Slack for the relational map (should be set to half of an object's size)
@@ -155,7 +155,9 @@ if __name__ == "__main__":
         relational_criterions = [SpatialPriorErrorSegmentation(graph_relations, image_dimensions=image_dimensions,
                                                              num_classes=len(fg_classes), crit_classes=crit_classes),
                                 RelationalMapOverlap(map_relations, num_classes=len(fg_classes), crit_classes=crit_classes, device="cuda")]
-        relational_criterion_idx = [1]
+        relational_criterions_labels = ["CSPE", "RMO"]
+        relational_criterion_idx = [0]
+        rc_label = "".join([relational_criterions_labels[i] for i in relational_criterion_idx])
 
         # Preparing dataset transforms:
         transform = tv.transforms.Compose(                                  # For the images:
@@ -168,8 +170,8 @@ if __name__ == "__main__":
         model_seeds = range(5)
         dataset_split_seeds = range(5)
         #alphas=[0, 0.2, 0.5, 0.7]
-        alphas = [0]
-        experimental_configs = [{"label": fg_label + "_strict_noise", "bg_classes": [0], "bg_amount": 3}]
+        alphas = [0.5]
+        experimental_configs = [{"label": fg_label + "_strict_" + rc_label, "bg_classes": [0], "bg_amount": 3}]
         
         # Running experiments
         for experimental_config in experimental_configs:
@@ -195,7 +197,7 @@ if __name__ == "__main__":
                                                     lazy_load=True,
                                                     transform=transform,
                                                     target_transform=target_transform)
-            
+
                         # Run experiment
                         run_experiment(model_seed=model_seed, dataset_split_seed=dataset_split_seed,
                                     dataset=train_dataset, 
