@@ -171,7 +171,9 @@ if __name__ == "__main__":
         dataset_split_seeds = range(5)
         #alphas=[0, 0.2, 0.5, 0.7]
         alphas = [0.5]
-        experimental_configs = [{"label": fg_label + "_strict_" + rc_label, "bg_classes": [0], "bg_amount": 3}]
+        experimental_configs = [{"label": fg_label + "_strict_" + rc_label, "bg_classes": [0], "bg_amount": 3, "position_noise": 0, "bg_bboxes": bg_bboxes},
+                                {"label": fg_label + "_hard_" + rc_label, "bg_classes": [0], "bg_amount": 3, "position_noise": 0.1, "bg_bboxes": None},
+                                {"label": fg_label + "_easy_" + rc_label, "bg_classes": [7], "bg_amount": 3, "position_noise": 0.1, "bg_bboxes": None}]
         
         # Running experiments
         for experimental_config in experimental_configs:
@@ -188,10 +190,10 @@ if __name__ == "__main__":
                                                     fg_classes=fg_classes,
                                                     fg_positions=base_fg_positions,
                                                     position_translation=position_translation,
-                                                    position_noise=position_noise,
+                                                    position_noise=experimental_config["position_noise"],
                                                     bg_classes=experimental_config["bg_classes"], # Background class from config
                                                     bg_amount=experimental_config["bg_amount"],
-                                                    bg_bboxes=bg_bboxes,
+                                                    bg_bboxes=experimental_config["bg_bboxes"],
                                                     fine_segment=True,
                                                     flattened=False,
                                                     lazy_load=True,
