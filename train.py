@@ -144,7 +144,8 @@ def train_model(model, optimizer, scheduler, criterion, relational_criterions, r
                         crit_loss = torch.tensor(0)
                     if alpha > 0:
                         # Relational losses expect softmaxed outputs
-                        rel_loss = torch.sum([relational_criterions[crit_idx](outputs_softmax, targets) for crit_idx in relational_loss_criterion_idx])
+                        losses_tensor = torch.stack([relational_criterions[crit_idx](outputs_softmax, targets) for crit_idx in relational_loss_criterion_idx], dim=0)
+                        rel_loss = torch.sum(losses_tensor, dim=0)
                     else:
                         rel_loss = torch.tensor(0)
                     loss = ((1-alpha)*crit_loss + (alpha)*rel_loss) * loss_strength
