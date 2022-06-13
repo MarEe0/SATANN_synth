@@ -179,8 +179,10 @@ if __name__ == "__main__":
                                                             num_classes=len(fg_classes), crit_classes=crit_classes),
                             RelationalMapOverlap(map_relations, num_classes=len(fg_classes), crit_classes=crit_classes, device="cuda")]
     relational_criterions_labels = ["CSPE", "RMO"]
-    relational_criterion_idx = [0]
-    rc_label = "".join([relational_criterions_labels[i] for i in relational_criterion_idx])
+    if type(relational_criterion_idx) is int:
+        rc_label = relational_criterions_labels[relational_criterion_idx]
+    else:
+        rc_label = "".join([relational_criterions_labels[i] for i in relational_criterion_idx])
 
     # Preparing dataset transforms:
     transform = tv.transforms.Compose(                                  # For the images:
