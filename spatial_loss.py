@@ -289,7 +289,7 @@ class RelationalMapOverlap(nn.Module):
         #    return torch.sum(1-rel_scores)
         #if self.reduction == "none" or self.reduction is None:
         #    return 1-rel_scores
-        rel_score = 1.0 - torch.div(torch.sum(rel_scores), len(self.relations))  # Normalize the score to 0...1 and invert it
+        rel_score = 1.0 - torch.div(torch.sum(rel_scores), output.size(0)*len(self.relations))  # Normalize the score to 0...1 and invert it
 
         return rel_score
 
