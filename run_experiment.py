@@ -112,12 +112,12 @@ if __name__ == "__main__":
     # Testing experiments
     # Default training setup: 1000 objects, CSPE, shirt-only, m0, d0, a0, strict
     if len(sys.argv) < 8:
-        dataset_size = 1000
-        relational_criterion_idx = 0
-        crit_classes = [0,1]
+        dataset_size = 5000
+        relational_criterion_idx = 1
+        crit_classes = [0,1,2,3]
         model_seed = 0
         dataset_split_seed = 0
-        alpha = 0
+        alpha = 0.5
         current_config="strict"
     else:
         dataset_size = int(sys.argv[1])
@@ -145,7 +145,11 @@ if __name__ == "__main__":
                             [1, 3, 0.3, -0.4],
                             [2, 3, 0.3, 0]]
         map_relations = [(2, 1, create_relational_kernel(distance=0.4*image_dimensions[0], angle=pi, distance_slack=slack)),
-                            (3, 1, create_relational_kernel(distance=0.5*image_dimensions[0], angle=(7/6)*pi, distance_slack=slack))]  # if image dimensions is not square this will bug
+                            (1, 2, create_relational_kernel(distance=0.4*image_dimensions[0], angle=pi+pi, distance_slack=slack)),
+                            (3, 2, create_relational_kernel(distance=0.3*image_dimensions[0], angle=pi/2, distance_slack=slack)),
+                            (2, 3, create_relational_kernel(distance=0.3*image_dimensions[0], angle=pi/2 + pi, distance_slack=slack)),
+                            (3, 1, create_relational_kernel(distance=0.5*image_dimensions[0], angle=(7/6)*pi, distance_slack=slack)),
+                            (1, 3, create_relational_kernel(distance=0.5*image_dimensions[0], angle=(7/6)*pi - pi, distance_slack=slack))]  # if image dimensions is not square this will bug
     elif fg_label == "D":  # Diamond
         fg_classes = [0, 1, 8, 9]
         base_fg_positions = [(0.5, 0.3), (0.7, 0.5), (0.5, 0.7), (0.3, 0.5)]
@@ -169,7 +173,7 @@ if __name__ == "__main__":
         # TODO: H map relations
     else: raise ValueError("fg_label {} not recognized".format(fg_label))
 
-    crit_classes_label = ",".join(str(x) for x in crit_classes if x != 0)
+    crit_classes_label = ",".join(str(x) for x in crit_classes)
     # if all classes are crit, crit_classes is None https://pbs.twimg.com/media/EzVV_GLVEAsVVzN.jpg
     if len(crit_classes) == (len(fg_classes))+1:
         crit_classes = None
