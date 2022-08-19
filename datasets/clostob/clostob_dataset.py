@@ -214,20 +214,19 @@ class CloStObDataset(Dataset):
             self.bg_bboxes = bg_bboxes
         self.flattened = flattened
         self.fine_segment = fine_segment
-        self.start_seed = 0
+        self.start_seed = start_seed
 
         # If preloading, generate a list of CloStOb images and apply transforms
         if not self.lazy_load:
-            self.samples = [self.apply_transforms(generate_image(i, self.base_dataset, self.image_dimensions, self.fg_classes, self.fg_positions, self.position_translation, self.position_noise, self.rescale_classes, self.rescale_range, self.occlusion_classes, self.occlusion_range, self.bg_classes, self.bg_amount, self.bg_bboxes, self.fine_segment, self.flattened)) for i in range(size)]
+            self.samples = [self.apply_transforms(generate_image(i+start_seed, self.base_dataset, self.image_dimensions, self.fg_classes, self.fg_positions, self.position_translation, self.position_noise, self.rescale_classes, self.rescale_range, self.occlusion_classes, self.occlusion_range, self.bg_classes, self.bg_amount, self.bg_bboxes, self.fine_segment, self.flattened)) for i in range(size)]
 
         self.size = size
 
     def __getitem__(self, idx):
-        idx = idx + self.start_seed
         if not self.lazy_load:
             sample = self.samples[idx]
         else:
-            sample = generate_image(idx, self.base_dataset, self.image_dimensions, self.fg_classes, self.fg_positions, self.position_translation, self.position_noise, self.rescale_classes, self.rescale_range, self.occlusion_classes, self.occlusion_range, self.bg_classes, self.bg_amount, self.bg_bboxes, self.fine_segment, self.flattened)
+            sample = generate_image(idx + self.start_seed, self.base_dataset, self.image_dimensions, self.fg_classes, self.fg_positions, self.position_translation, self.position_noise, self.rescale_classes, self.rescale_range, self.occlusion_classes, self.occlusion_range, self.bg_classes, self.bg_amount, self.bg_bboxes, self.fine_segment, self.flattened)
             sample = self.apply_transforms(sample)
         return sample
 
