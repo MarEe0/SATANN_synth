@@ -68,6 +68,7 @@ def plot_individual_model(path_base, dataset_size, experiment_label):
     ax1.vlines(best_epoch,0,max_loss,"m","dashed")
     # Plotting losses per epoch (left axis)
     ax1.set_xlabel("Epoch")
+    ax1.set_xlim((0, 100))
     ax1.set_ylabel("Loss")
     ax1.set_ylim(top=max_loss)
     train_plot, = ax1.plot(range(epoch_count), train_losses, colors[0], label="Train Loss")
@@ -93,6 +94,7 @@ def plot_individual_model(path_base, dataset_size, experiment_label):
 
     # Making no-loss plot
     plt.xlabel("Epoch")
+    plt.xlim((0, 100))
     plt.ylabel("Score")
     plt.ylim((0.0,1.0))
     plt.vlines(best_epoch,0,1.0,"m","dashed")
